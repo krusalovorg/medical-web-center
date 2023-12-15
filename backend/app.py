@@ -90,7 +90,7 @@ def add_reff():
         image.save(path)
         data['image'] = image.filename
     img = data['image']
-    if collection_db.find_one({"mail": get_jwt_identity()()}):
+    if collection_db.find_one({"mail": get_jwt_identity()}):
         person_id = collection_db.find_one({"mail": get_jwt_identity()})['_id']
     elif collection_db.find_one({"phone_number": get_jwt_identity()}):
         person_id = collection_db.find_one({"phone_number": get_jwt_identity()})['_id']
@@ -128,6 +128,17 @@ def show_doctor():
     for document in user:
         result.append(document)
     return jsonify({result})
+
+
+@app.route('/get_user_by_key', methods=['POST'])
+@jwt_required()
+def get_user():
+    if collection_db.find_one({"mail": get_jwt_identity()}):
+        result = collection_db.find_one({"mail": get_jwt_identity()})
+        return jsonify({result})
+    elif collection_db.find_one({"phone_number": get_jwt_identity()}):
+        result = collection_db.find_one({"phone_number": get_jwt_identity()})
+        return jsonify({result})
 
 
 if __name__ == '__main__':
