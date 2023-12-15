@@ -61,9 +61,9 @@ def register():
     avatar = os.path.join(app.root_path, 'images', 'user.svg')
     birthday = data.get('birthday', '')
     position = data.get("position", "")
-    isDoctor = data['isDoctor']
-    expirience = data['expirience']
-    place=data['place']
+    isDoctor = data.get('isDoctor', False)
+    expirience = data.get('expirience')
+    place = data.get('place')
     add_to_database(
         {'name': name, 'surname': surname, 'patronymic': patronymic, 'password': password, 'phone_number': phone_number,
          'email': email,
