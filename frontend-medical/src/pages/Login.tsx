@@ -45,7 +45,8 @@ function Login({ reg }: any) {
             .then(data => {
                 // Сохраняем токен в куки
                 document.cookie = `access_token = ${data.access_token}`;
-                setToken(data.access_token)
+                setToken(data.access_token);
+                window.location.reload();
             })
             .catch(error => {
                 setError(error.message);

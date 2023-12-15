@@ -42,9 +42,11 @@ def find_in_database(email=None, phone_number=None):
 def get_user():
     if collection_db.find_one({"email": get_jwt_identity()}):
         result = collection_db.find_one({"email": get_jwt_identity()})
+        result['_id'] = str(result['_id'])
         return result
     elif collection_db.find_one({"phone_number": get_jwt_identity()}):
         result = collection_db.find_one({"phone_number": get_jwt_identity()})
+        result['_id'] = str(result['_id'])
         return result
 
 
@@ -148,6 +150,7 @@ def show_doctor():
         ]
     })
     for document in user:
+        document['_id'] = str(document['_id'])
         result.append(document)
     return jsonify({result})
 
@@ -156,7 +159,7 @@ def show_doctor():
 @app.route('/get_user_by_key', methods=['POST'])
 @jwt_required()
 def get_user():
-    return jsonify({get_user()})
+    return jsonify(get_user())
 
 
 @app.route('/update_user', methods=['POST'])

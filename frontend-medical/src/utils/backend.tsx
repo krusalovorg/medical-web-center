@@ -1,23 +1,5 @@
 export const URL_SERVER = "http://127.0.0.1:5000";
 
-export async function getData() {
-    let url = URL_SERVER;
-    try {
-        console.log("fetch url:", url);
-        const response = await fetch(url, {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-        });
-        if (!response.ok) {
-            throw new Error("Network response was not ok");
-        }
-        // return data as any;
-    } catch (error) {
-        console.error("Error fetching data:", error);
-        throw error;
-    }
-}
-
 async function requestData(url: string) {
     const response = await fetch(url);
     if (!response.ok) {
@@ -26,21 +8,27 @@ async function requestData(url: string) {
     return response.json();
 }
 
-export async function getItemById(
-    id: string,
-    category: "places" | "routes" | "category"
-) {
+
+export const getUserData = async (token: string) => {
     try {
-        const url = `${URL_SERVER}/get_details_id?id=${id}&table_name=${category}`;
-        console.log("fetch url:", url);
-        const data = await requestData(url);
-        //console.log('data:', data)
-        return data;
+        const response = await fetch(URL_SERVER + "/get_user_by_key", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+            }
+        });
+        if (!response.ok) {
+            throw new Error("Network response was not ok");
+        }
+        const data = await response.json();
+        return data as UserData;
     } catch (error) {
         console.error("Error fetching data:", error);
         throw error;
     }
-}
+};
+
 
 export const getCookieToken = () => {
     let res = document.cookie.split("; ").find((row) => row.startsWith("access_token="))
@@ -55,7 +43,6 @@ export type UserData = {
     name: string;
     surname: string;
     patronymic: string;
-    password: string;
     phone_number?: string;
     email: string;
     birthday?: string;
@@ -85,3 +72,16 @@ export const getDoctors = async (searchText: string) => {
         throw error;
     }
 };
+
+
+export const logout = () => {
+    const cookies = document.cookie.split(";");
+
+    for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i];
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    }
+    document.location.reload();
+}
