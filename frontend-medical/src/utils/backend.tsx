@@ -1,4 +1,4 @@
-export const URL_SERVER = "http://127.0.0.0.1:5000"
+export const URL_SERVER = "http://127.0.0.1:5000"
 
 export async function getData() {
     let url = URL_SERVER;

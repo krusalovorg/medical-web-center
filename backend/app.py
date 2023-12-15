@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from datetime import timedelta
 import os
+from flask_cors import CORS
 
 cluster = MongoClient("mongodb://localhost:27017")
 accounts_db = cluster["accounts"]
@@ -10,6 +11,7 @@ collection_db = accounts_db["accounts_collection"]
 reference_db = accounts_db["reference_collection"]
 
 app = Flask(__name__)
+CORS(app)
 app.config['JWT_SECRET_KEY'] = 'your_secret_key'
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
 jwt = JWTManager(app)
@@ -40,9 +42,9 @@ def register():
     surname = data['surname']
     patronymic = data['patronymic']
     password = data['password']
-    phone_number = data['phone_number']
+    phone_number = data.get('phone_number','')
     email = data['email']
-    birthday = data['birthday']
+    birthday = data.get('birthday','')
     position = data.get("position", "")
     user_type = data['user_type']
 

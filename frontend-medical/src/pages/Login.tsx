@@ -54,17 +54,17 @@ function Login({ reg }: any) {
 
     const registerUser = () => {
         const userData = {
-            name: 'Имя',
-            surname: 'Фамилия',
-            patronymic: 'Отчество',
-            password: 'Пароль',
-            phone_number: 'Телефон',
-            mail: email,
-            birthday: 'Дата рождения',
+            name,
+            surname,
+            patronymic,
+            password,
+            // phone_number: 'Телефон',
+            email,
+            // birthday: 'Дата рождения',
             position,
             user_type: imDoctor
         }
-        fetch('/register', {
+        fetch(URL_SERVER+'/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -84,7 +84,8 @@ function Login({ reg }: any) {
     return (
         <>
             <div className={` ${!token && 'flex justify-center items-center'}`} style={{
-                minHeight: 'calc(100vh - 277px)'
+                minHeight: 'calc(100vh - 70px)',
+                marginTop: 70
             }}>
                 <div className='w-full max-w-lg px-10 py-8 mx-auto bg-white border shadow-sm rounded-2xl'>
                     <div className='max-w-md mx-auto space-y-3'>
@@ -168,7 +169,7 @@ function Login({ reg }: any) {
                         {error && <p className="text-red-500">{error}</p>}
                         <div className="flex gap-3 pt-3 items-center justify-center">
                             <button
-                                onClick={handleLogin}
+                                onClick={reg ? registerUser : handleLogin}
                                 className="border px-4 py-2 font-[Montserrat] rounded-lg ring-inset ring-gray-300 ">{reg ? "Создать аккаунт" : "Войти"}</button>
                         </div>
                         <p className='text-center font-[Montserrat]'>
