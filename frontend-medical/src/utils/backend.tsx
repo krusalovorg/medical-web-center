@@ -35,3 +35,6 @@ export async function getItemById(id: string, category: "places" | "routes" | "c
         throw error;
     }
 }
+
+export const getCookieToken = () => document.cookie.split('; ').find(row => row.startsWith('access_token='));
+export const getImage = (image: string) => URL_SERVER+`/image/${image}`

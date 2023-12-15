@@ -22,9 +22,9 @@ def add_to_database(data, db):
         reference_db.insert_one(data)
 
 
-def find_in_database(mail=None, phone_number=None):
-    if mail:
-        user = collection_db.find_one({"mail": mail})
+def find_in_database(email=None, phone_number=None):
+    if email:
+        user = collection_db.find_one({"email": email})
         if user:
             return user['password']
     elif phone_number:
@@ -41,14 +41,14 @@ def register():
     patronymic = data['patronymic']
     password = data['password']
     phone_number = data['phone_number']
-    mail = data['mail']
+    email = data['email']
     birthday = data['birthday']
     position = data.get("position", "")
     user_type = data['user_type']
 
     add_to_database(
         {'name': name, 'surname': surname, 'patronymic': patronymic, 'password': password, 'phone_number': phone_number,
-         'mail': mail,
+         'email': email,
          'birthday': birthday, 'position': position, 'user_type': user_type}, 'accounts')
     return jsonify({'message': 'User registered successfully'})
 
@@ -58,10 +58,10 @@ def register():
 def login():
     data = request.get_json()
     password = data['password']
-    if data['mail']:
-        mail = data['mail']
-        if find_in_database(mail=mail) == password:
-            access_token = create_access_token(identity=mail)
+    if data['email']:
+        email = data['email']
+        if find_in_database(email=email) == password:
+            access_token = create_access_token(identity=email)
             print(access_token, 'token')
             return jsonify(access_token=access_token), 200
         else:
@@ -90,8 +90,8 @@ def add_reff():
         image.save(path)
         data['image'] = image.filename
     img = data['image']
-    if collection_db.find_one({"mail": get_jwt_identity()}):
-        person_id = collection_db.find_one({"mail": get_jwt_identity()})['_id']
+    if collection_db.find_one({"email": get_jwt_identity()}):
+        person_id = collection_db.find_one({"email": get_jwt_identity()})['_id']
     elif collection_db.find_one({"phone_number": get_jwt_identity()}):
         person_id = collection_db.find_one({"phone_number": get_jwt_identity()})['_id']
     else:
@@ -133,8 +133,8 @@ def show_doctor():
 @app.route('/get_user_by_key', methods=['POST'])
 @jwt_required()
 def get_user():
-    if collection_db.find_one({"mail": get_jwt_identity()}):
-        result = collection_db.find_one({"mail": get_jwt_identity()})
+    if collection_db.find_one({"email": get_jwt_identity()}):
+        result = collection_db.find_one({"email": get_jwt_identity()})
         return jsonify({result})
     elif collection_db.find_one({"phone_number": get_jwt_identity()}):
         result = collection_db.find_one({"phone_number": get_jwt_identity()})

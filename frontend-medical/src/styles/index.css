@@ -5,6 +5,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  background-color: #EFF1F7;
 }
 
 code {
@@ -15,3 +17,11 @@ code {
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+.four_text {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
