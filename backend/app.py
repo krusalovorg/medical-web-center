@@ -34,7 +34,6 @@ def find_in_database(email=None, phone_number=None):
         if user:
             return user['password']
 
-
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -123,13 +122,15 @@ def show_doctor():
         "$or": [
             {"surname": {"$regex": search_item, "$options": "i"}},
             {"name": {"$regex": search_item, "$options": "i"}},
-            {"": {"$regex": search_item, "$options": "i"}},
+            {"patronymic": {"$regex": search_item, "$options": "i"}},
             {"position": {"$regex": search_item, "$options": "i"}}
         ]
     })
     for document in user:
+        document['_id'] = str(document['_id'])
         result.append(document)
-    return jsonify({result})
+    print(result)
+    return jsonify(result)
 
 
 @app.route('/get_user_by_key', methods=['POST'])

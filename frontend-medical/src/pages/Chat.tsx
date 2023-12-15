@@ -1,10 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SearchInput from "../components/SearchInput";
 import UserMessage from "../components/UserMessage";
 import Plus from "../icons/Plus";
+import { UserData, getDoctors } from "../utils/backend";
 
 function Chat() {
-    const [selectId, setSelectId] = useState(1);
+    const [selectId, setSelectId] = useState<any>('');
+    const [searchText, setSearchText] = useState('');
+    const [doctorsSearch, setDoctorsSearch] = useState<UserData[]>([]);
+    const [renderDoctors, setRenderDoctors] = useState();
+
+    async function load() {
+        if (searchText.length > 0) {
+            const res = await getDoctors(searchText);
+            setDoctorsSearch(res);
+        } else {
+            setDoctorsSearch([]);
+        }
+    }
+
+    useEffect(() => {
+        load()
+    }, [searchText])
+
     return (
         <div className="w-full h-full flex flex-row justify-between align-top">
             <div className="h-full max-w-[550px] bg-white">
@@ -16,7 +34,7 @@ function Chat() {
                     <div className="border-b-4 border-[#0067E2] w-[90%] mx-auto mt-auto absolute bottom-0"></div>
                 </div>
                 <div className="bg-white h-[100px] px-4 py-[30px] flex flex-row justify-between gap-x-2">
-                    <SearchInput />
+                    <SearchInput onChange={setSearchText} />
                     <div className={`rounded-full flex justify-center items-center min-w-[48px] w-[48px] h-[48px] cursor-pointer text-white bg-[#0067E3]`} >
                         <Plus />
                     </div>
@@ -32,35 +50,17 @@ function Chat() {
                             id: 1,
                             text: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.                        "
                         }} />
-                    <UserMessage
-                        setId={setSelectId}
-                        data={{
-                            name: "Егор",
-                            surname: "Дудкин",
-                            select: selectId == 2,
-                            new_message: 1,
-                            id: 2,
-                            date: "14:56",
-                            text: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.                        "
-                        }} />
-                    <UserMessage
-                        setId={setSelectId}
-                        data={{
-                            name: "Егор",
-                            surname: "Дудкин",
-                            select: selectId == 3,
-                            id: 3,
-                            text: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.                        "
-                        }} />
-                    <UserMessage
-                        setId={setSelectId}
-                        data={{
-                            name: "Егор",
-                            surname: "Дудкин",
-                            select: selectId == 4,
-                            id: 4,
-                            text: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.                        "
-                        }} />
+                    {doctorsSearch.map((item, index: number) =>
+                        <UserMessage
+                            setId={setSelectId}
+                            data={{
+                                name: item.name,
+                                surname: item.surname,
+                                select: selectId == item?._id,
+                                id: item?._id
+                            }} />
+                    )
+                    }
                 </div>
             </div>
             <div className="w-full h-full flex justify-center items-center">
@@ -80,7 +80,7 @@ function Chat() {
                     <div className="w-full h-full overflow-scroll overflow-x-hidden px-5 flex gap-4 flex-col" style={{
                         height: "calc(100% - 200px)"
                     }}>
-                        <div className="h-5"/>
+                        <div className="h-5" />
                         <div className="max-w-[70%] w-fit bg-white shadow-md rounded-2xl p-7">
                             Добрый день Егор, как себя чувствуете?
                         </div>

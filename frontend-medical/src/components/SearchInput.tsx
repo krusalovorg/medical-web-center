@@ -1,6 +1,6 @@
 import React from 'react';
 
-const SearchInput: React.FC = () => {
+const SearchInput = ({onChange}: {onChange: any}) => {
   return (
     <div className="relative h-[48px] pl-3 pr-4 py-2 rounded-xl bg-[#F5FAFD] flex flex-row items-center w-full">
       <div className="pointer-events-none">
@@ -22,6 +22,7 @@ const SearchInput: React.FC = () => {
       </div>
       <input
         type="text"
+        onChange={(e)=>onChange(e.target.value)}
         className="border-none pl-3 h-full focus:outline-none w-full bg-transparent placeholder-text-[#C9CBD2] font-[Montserrat]"
         placeholder='Найти'
       />
