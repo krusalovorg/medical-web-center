@@ -6,7 +6,7 @@ import { UserData, getDoctors } from "../utils/backend";
 import socketIOClient from 'socket.io-client';
 import Modal from "../components/Modal";
 
-const ENDPOINT = "http://localhost:5000";
+const ENDPOINT = "http://127.0.0.1:5000";
 
 function Chat() {
     const [selectId, setSelectId] = useState<any>('');
@@ -17,9 +17,9 @@ function Chat() {
     const [open, setOpen] = useState(false);
     const [selectCreateChatUser, setSelectCreateChatUser] = useState<any>(0);
 
-    const [inputMessage, setInputMessage] = useState("");
     const [room, setRoom] = useState("general");  // Идентификатор комнаты
 
+    const [text, setText] = useState<string>("");
     const [messages, setMessages] = useState<any>([]);
 
     useEffect(() => {
@@ -27,6 +27,7 @@ function Chat() {
         socket.emit('connected', { room: room });
 
         socket.on('message', (data: any) => {
+            console.log('get data:',data)
             setMessages([...messages, data]);
         });
 
@@ -34,9 +35,11 @@ function Chat() {
     }, [messages, room]);
 
     const sendMessage = () => {
-        const socket = socketIOClient(ENDPOINT);
-        socket.emit('message', { room: room, text: inputMessage });
-        setInputMessage("");  // Очистить поле ввода после отправки
+        if (text.length > 0) {
+            const socket = socketIOClient(ENDPOINT);
+            socket.emit('message', { room: room, text: text });
+            setText("");  // Очистить поле ввода после отправки
+        }
     };
 
 
@@ -78,11 +81,11 @@ function Chat() {
                     </div>
                     {selectCreateChatUser ?
                         <button
-                        onClick={()=>setOpen(false)}
-                        className="outline-none border-none w-full h-[68px] bg-[#0067E3] text-white text-xl rounded-xl">
+                            onClick={() => setOpen(false)}
+                            className="outline-none border-none w-full h-[68px] bg-[#0067E3] text-white text-xl rounded-xl">
                             Выбрать
                         </button>
-                        :<></>
+                        : <></>
                     }
                 </div>
             </Modal>
@@ -158,11 +161,12 @@ function Chat() {
                                 Отлично ПРЕКРАСНо спасибо !
                             </div>
                             {
-                                messages.map((item: any) =>
-                                    <div className="max-w-[70%] w-fit bg-white shadow-md rounded-2xl p-7">
-                                        {item}
+                                messages.map((item: any) => {
+                                    //console.log(item)
+                                    return <div className="max-w-[70%] w-fit bg-white shadow-md rounded-2xl p-7">
+                                        {item?.text}
                                     </div>
-                                )
+                                })
                             }
                         </div>
                         <div className="w-[94%] mx-[3%] px-6 bg-white h-[75px] shadow-md rounded-3xl flex flex-row items-center absolute bottom-0 mb-5">
@@ -170,8 +174,12 @@ function Chat() {
                                 type="text"
                                 className="border-none h-full focus:outline-none w-full bg-transparent placeholder-text-[#C9CBD2] font-[Montserrat]"
                                 placeholder='Введите сообщение...'
+                                value={text}
+                                onChange={(e) => setText(e.target.value)}
                             />
-                            <div className="bg-[#0067E2] cursor-pointer rounded-xl w-[200px] h-[40px] text-white font-[Montserrat] font-semibold flex justify-center items-center">
+                            <div
+                                onClick={() => sendMessage()}
+                                className="bg-[#0067E2] cursor-pointer rounded-xl w-[200px] h-[40px] text-white font-[Montserrat] font-semibold flex justify-center items-center">
                                 Отправить
                                 <svg className="ml-2" width="26" height="24" viewBox="0 0 26 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M24.3124 12L11.673 12M6.34676 16.1693H3.91245M6.34676 12.1464H1.51245M6.34676 8.12356H3.91245M10.6198 4.59596L23.8752 11.0228C24.6915 11.4186 24.6915 12.5814 23.8752 12.9772L10.6198 19.4041C9.71176 19.8443 8.74657 18.9161 9.15107 17.9915L11.5819 12.4353C11.7033 12.1578 11.7033 11.8422 11.5819 11.5647L9.15107 6.00848C8.74657 5.08391 9.71176 4.15568 10.6198 4.59596Z" stroke="white" strokeWidth="2" strokeLinecap="round" />
