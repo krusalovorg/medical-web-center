@@ -138,7 +138,7 @@ def show_ref():
 def show_doctor():
     result = []
     data = request.get_json()
-    search_item = data.get['search_item']
+    search_item = data.get('search_item')
     user = collection_db.find({
         "$or": [
             {"surname": {"$regex": search_item, "$options": "i"}},
@@ -150,7 +150,7 @@ def show_doctor():
     for document in user:
         document['_id'] = str(document['_id'])
         result.append(document)
-    return jsonify({result})
+    return jsonify(result)
 
 
 # get user by key
