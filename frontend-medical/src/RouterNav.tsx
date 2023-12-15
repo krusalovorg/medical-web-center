@@ -3,7 +3,6 @@ import Header from './components/Header';
 import VerticalHeader from './components/VerticalHeader';
 import { BrowserRouter, Route, Router, Routes } from 'react-router-dom';
 import Chat from './pages/Chat';
-import socketIO from 'socket.io-client';
 import { useEffect, useState } from 'react';
 import { getCookieToken } from './utils/backend';
 import Login from './pages/Login';

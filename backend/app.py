@@ -17,7 +17,7 @@ CORS(app)
 app.config['JWT_SECRET_KEY'] = 'your_secret_key'
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
 jwt = JWTManager(app)
-
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # add something to data base
 def add_to_database(data, db):
@@ -169,7 +169,17 @@ def update_by_id():
         document[key] = data[key]
     collection_db.update_one({'_id': user}, {'$set': document})
 
+@socketio.on('connected')
+def handle_connected(data):
+    print('connect data user',data)
+    join_room(data['room'])  # присоединяем пользователя к комнате с уникальным идентификатором
+
+@socketio.on('message')
+def handle_message(data):
+    # db.messages.insert_one(data)  # сохраняем сообщение в MongoDB
+    print('get message',data)
+    emit('message', data, room=data['room'])  # отправляем сообщение только тем, кто в этой комнате
 
 # start program
 if __name__ == '__main__':
-    app.run()
+    socketio.run(app, allow_unsafe_werkzeug=True)
