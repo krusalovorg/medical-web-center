@@ -1,11 +1,16 @@
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from datetime import timedelta
 
 cluster = MongoClient("mongodb://localhost:27017")
 accounts_db = cluster["accounts"]
 collection_db = accounts_db["accounts_collection"]
 
 app = Flask(__name__)
+app.config['JWT_SECRET_KEY'] = 'your_secret_key'
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
+jwt = JWTManager(app)
 
 
 def add_to_database(data):
@@ -51,17 +56,21 @@ def login():
     if data['mail']:
         mail = data['mail']
         if find_in_database(mail=mail) == password:
-            return jsonify({'message': 'Login successful'})
+            access_token = create_access_token(identity=mail)
+            print(access_token, 'token')
+            return jsonify(access_token=access_token), 200
         else:
             return jsonify({'message': 'incorrect password'})
     elif data['phone_number']:
         phone_number = data['phone_number']
         if find_in_database(phone_number=phone_number) == password:
-            return jsonify({'message': 'Login successful'})
+            access_token = create_access_token(identity=phone_number)
+            print(access_token, 'token')
+            return jsonify(access_token=access_token), 200
         else:
             return jsonify({'message': 'incorrect password'})
     else:
-        return jsonify({'message': 'incorrect mail or phone number'})
+        return jsonify({'message': 'no email or phone_number'})
 
 
 if __name__ == '__main__':
