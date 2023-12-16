@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from pymongo import MongoClient
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from datetime import timedelta
@@ -171,7 +171,7 @@ def update_by_id():
     for key in data.keys():
         document[key] = data[key]
     collection_db.update_one({'_id': user}, {'$set': document})
-    
+
 # send image
 @app.route('/image/<image_name>', methods=['GET'])
 def send_image(image_name):
