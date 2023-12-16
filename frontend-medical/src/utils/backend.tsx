@@ -50,6 +50,7 @@ export type UserData = {
     isDoctor?: boolean;
     avatar: string,
     _id?: any;
+    city?: string;
 };
 
 export const getDoctors = async (searchText: string) => {

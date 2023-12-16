@@ -10,11 +10,12 @@ import MinimalInput from "../components/MinimalInput";
 import PenIcon from "../icons/PenIcon";
 import CategoryItem from "../components/CategoryItem";
 import DateInput from "../components/DateInput";
+import moment from "moment";
 
 function References() {
     const [name, setName] = useState('');
     const [selectCategory, setSelectCategory] = useState('');
-    const [date, setDate] = useState('');
+    const [date, setDate] = useState(moment().format("DD.MM.YYYY"));
 
     const [submited, setSubmited] = useState(false);
 
@@ -78,6 +79,12 @@ function References() {
                 .then(data => {
                     console.log('User updated successfully:', data);
                     setOpen(false)
+                    load()
+                    setName("");
+                    setSelectCategory("");
+                    setDate("");
+                    setFile({});
+                    setNewFileAsImage(null);
                 })
                 .catch(error => {
                     console.error('Error updating user:', error);
@@ -87,19 +94,22 @@ function References() {
 
     async function deleteReference() {
         if (refSelected) {
+            console.log('ref rdelelete',refSelected?._id)
             fetch(URL_SERVER + '/delete_reference', {
-                method: 'DELETE',
+                method: 'POST',
                 headers: {
                     Authorization: "Bearer " + getCookieToken(),
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    reference_id: refSelected?._id
+                    reference_id: refSelected?._id,
                 })
             })
                 .then(response => response.json())
                 .then(data => {
                     console.log('User updated successfully:', data);
                     setOpen(false)
+                    load()
                 })
                 .catch(error => {
                     console.error('Error updating user:', error);

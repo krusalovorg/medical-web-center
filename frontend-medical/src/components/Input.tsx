@@ -17,7 +17,7 @@ function Input({
 }) {
     return (
         <>
-            <h2 className="text-md text-black font-[Montserrat] mb-2 pl-5">{title}</h2>
+            {title && <h2 className="text-md text-black font-[Montserrat] mb-2 pl-5">{title}</h2>}
             <div className={`w-full px-6 bg-white h-[70px] shadow-md rounded-xl flex flex-row items-center ${error ? "border-red-500 border-2 ring-red-500" : "mb-5"}`}>
                 <input
                     type={type || "text"}

@@ -17,7 +17,7 @@ function Chat() {
     const [doctorsSearch, setDoctorsSearch] = useState<UserData[]>([]);
     const [renderDoctors, setRenderDoctors] = useState();
 
-    const ref = useRef(null);
+    const ref = useRef<HTMLDivElement>(null);
 
     const [allChats, setAllChats] = useState<any[]>([]);
 
@@ -37,9 +37,11 @@ function Chat() {
 
     const userData = useContext(UserContext);
 
-    const [selectId, setSelectId] = useState<any>();
+    const [selectId, setSelectId] = useState<any>(null);
 
     const [allDoctors, setAllDoctors] = useState<UserData[]>([]);
+
+    const [loading, setLoading] = useState(false);
 
     async function loadUser() {
         const token = getCookieToken();
@@ -63,11 +65,14 @@ function Chat() {
         socket.on('connected', (data) => {
             console.log('get data:', data);
             setMessages(data?.messages);
+            setTimeout(() => scrollBottom(), 200);
         });
 
         socket.on('message', (message: any) => {
             console.log('get data:', message, messages);
             setMessages((prevMessages: any) => ([...prevMessages, message]));
+            setTimeout(() => scrollBottom(), 200);
+            setLoading(false);
         });
 
         socket.on('online', (online: any) => {
@@ -91,6 +96,9 @@ function Chat() {
             const socket = io(ENDPOINT);
             console.log('send data::::', selectId, userData?._id, { room: selectId, text: text, user_id: userData._id })
             socket.emit('message', { room: selectId, text: text, user_id: userData._id });
+            if (selectedUserChat?.avatar == 'gpt.jpg') {
+                setLoading(true);
+            }
             setText("");  // Очистить поле ввода после отправки
         }
         scrollBottom()
@@ -105,7 +113,8 @@ function Chat() {
 
     function scrollBottom() {
         if (ref.current) {
-            (ref.current as any)?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
+            // (ref.current as any)?.scrollIntoView({ behavior: "smooth", block: "end"});
+            ref.current.scrollTo(9999999, 9999999);
         }
     }
 
@@ -122,8 +131,16 @@ function Chat() {
         const res = await getChats();
         console.log('res', res)
         setAllChats(res);
-        if (res.length > 0 && !selectId) {
-            setSelectId(res[0]?._id)
+        console.log('resultttttttttttttttttttttttt', res.length > 0, selectId, selectId == null)
+        if (res.length > 0 && selectId == null) {
+            const item: any = res[0];
+            let id_room = item?.users?.find((x: any) => x !== userData?._id);
+            if (item?.users[0] == item?.users[1]) {
+                id_room = item?.users[0]
+            }
+            console.log('sett id', id_room, item)
+            setSelectId(id_room)
+            setSelectedUserChat(item?.companion)
         } else if (!selectId) {
             setSelectId(userData?._id)
             setSelectedUserChat(userData)
@@ -136,10 +153,7 @@ function Chat() {
 
     useEffect(() => {
         loadChats();
-
-        if (ref.current) {
-            (ref.current as any)?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
-        }
+        scrollBottom()
     }, [selectId, selectedUserChat])
 
     async function loadDoctorsAll() {
@@ -156,6 +170,7 @@ function Chat() {
 
     useEffect(() => {
         loadChats();
+        scrollBottom();
     }, [])
     return (
         <>
@@ -280,7 +295,7 @@ function Chat() {
                                 </div>
                             }
                         </div>
-                        <div ref={ref} className="w-full h-full overflow-scroll overflow-x-hidden px-5 flex gap-4 flex-col" style={{
+                        <div ref={ref} className="w-full h-full overflow-scroll overflow-x-hidden px-5 flex gap-4 flex-col pb-5" style={{
                             height: "calc(100% - 200px)"
                         }}>
                             <div className="h-5" />
@@ -301,11 +316,45 @@ function Chat() {
                                 messages && messages.length > 0 && messages.map((item: any) => {
                                     //console.log(item)
                                     const this_my = item?.user_id == userData?._id;
+                                    console.log(item?.topic)
                                     return <div className={`max-w-[70%] w-fit bg-white shadow-md rounded-2xl p-7 ${this_my ? "ml-auto" : ""}`}>
                                         {item?.text}
+
+                                        {(item?.topic || item?.google) && <br />}
+                                        {item?.topic && item?.topic?.length > 0 ? item?.topic?.map((item: any) => typeof item == 'string' ? <>
+                                            <a target={"_blank"} className="text-[#0067E2] font-[Montserrat] flex flex-row justify-between items-center mt-2 shadow-sm p-2 bg-white rounded-md" href={`https://yandex.ru/search/?text=${item}`}>
+                                                {item} Yandex
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M10.875 3H6.375C4.51104 3 3 4.51103 3 6.37498V17.625C3 19.489 4.51104 21 6.375 21H17.625C19.489 21 21 19.489 21 17.625V13.1249M15.3744 3.00027L21 3M21 3V8.06261M21 3L11.4367 12.5622" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                </svg>
+                                            </a></> : <></>) : <></>}
+                                        {item?.google ? <>
+                                            <a target={"_blank"} className="text-[#0067E2] font-[Montserrat] flex flex-row justify-between items-center mt-2 shadow-sm p-2 bg-white rounded-md" href={`https://yandex.ru/search/?text=${item?.google}`}>
+                                                {item?.google} Yandex
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M10.875 3H6.375C4.51104 3 3 4.51103 3 6.37498V17.625C3 19.489 4.51104 21 6.375 21H17.625C19.489 21 21 19.489 21 17.625V13.1249M15.3744 3.00027L21 3M21 3V8.06261M21 3L11.4367 12.5622" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                </svg>
+                                            </a></> : <></>}
                                     </div>
                                 })
                             }
+                            {
+                                (loading && selectedUserChat?.avatar == 'gpt.jpg') ?
+                                    <>
+                                        <div className="max-w-[70%] w-fit bg-white shadow-md rounded-2xl p-7 ml-auto">
+                                            <div className='w-full px-[5%] flex justify-center items-center h-[24px]'>
+                                                <div className="lds-ellipsis"><div></div><div></div><div></div><div></div></div>
+                                            </div>
+                                        </div>
+                                        <div className="max-w-[70%] w-fit bg-white shadow-md rounded-2xl p-7">
+                                            <div className='w-full px-[5%] flex justify-center items-center h-[24px]'>
+                                                <div className="lds-ellipsis"><div></div><div></div><div></div><div></div></div>
+                                            </div>
+                                        </div>
+                                    </>
+                                    : <></>
+                            }
+
                         </div>
                         <div className="w-[94%] mx-[3%] px-6 bg-white h-[75px] shadow-md rounded-3xl flex flex-row items-center absolute bottom-0 mb-5">
                             <input

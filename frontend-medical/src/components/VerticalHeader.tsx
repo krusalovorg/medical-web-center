@@ -5,6 +5,7 @@ import User from '../icons/User';
 import Logout from '../icons/Logout';
 import { logout } from '../utils/backend';
 import FileIcon from '../icons/FileIcon';
+import PenWrite from '../icons/PenWrite';
 
 function VerticalHeader({ children }: any) {
     const navigate = useNavigate();
@@ -21,6 +22,9 @@ function VerticalHeader({ children }: any) {
                 </div>
                 <div onClick={() => navigate("/references")} className={`p-[20px] rounded-full cursor-pointer ${url == '/references' ? 'text-white bg-[#0067E3]' : 'text-black'}`} >
                     <FileIcon />
+                </div>
+                <div onClick={() => navigate("/history")} className={`p-[20px] rounded-full cursor-pointer ${url == '/history' ? 'text-white bg-[#0067E3]' : 'text-black'}`} >
+                    <PenWrite />
                 </div>
                 <div onClick={() => logout()} className={`p-[20px] rounded-full cursor-pointer mt-auto mb-2 text-black`} >
                     <Logout />

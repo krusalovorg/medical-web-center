@@ -121,6 +121,7 @@ function Profile() {
                 .then(response => response.json())
                 .then(data => {
                     console.log('User updated successfully:', data);
+                    window.location.reload();
                 })
                 .catch(error => {
                     console.error('Error updating user:', error);
@@ -135,6 +136,7 @@ function Profile() {
             setPatronymic(userData?.patronymic);
             setPosition(userData?.position || "");
             setEmail(userData?.email);
+            setCity(userData?.city || "");
         }
         console.log('usetrdata', userData)
     }, [userData])

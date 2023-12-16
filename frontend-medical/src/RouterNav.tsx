@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import Profile from './pages/Profile';
 import User from './contexts/UserContext';
 import References from './pages/References';
+import History from './pages/History';
 
 function RouterNav() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -44,6 +45,7 @@ function RouterNav() {
                                     <Route path='/chats' element={<Chat />} />
                                     <Route path='/user' element={<Profile />} />
                                     <Route path='/references' element={<References/>} />
+                                    <Route path='/history' element={<History/>} />
                                 </Routes>
                             </VerticalHeader>
                         </User.Provider>

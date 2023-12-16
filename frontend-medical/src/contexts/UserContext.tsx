@@ -11,7 +11,8 @@ const UserContext = createContext<UserData>({
   position: '',
   isDoctor: false,
   avatar: 'user.svg',
-  _id: ''
+  _id: '',
+  city: ""
 });
 
 export default UserContext;

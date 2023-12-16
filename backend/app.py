@@ -16,12 +16,14 @@ from geventwebsocket.handler import WebSocketHandler
 import re
 
 from ai.ai import Ai
+import yake
 
 cluster = MongoClient("mongodb://localhost:27017")
 accounts_db = cluster["accounts"]
 collection_db = accounts_db["accounts_collection"]
 reference_db = accounts_db["reference_collection"]
 message_db = accounts_db['chats']
+history_db = accounts_db['history']
 
 app = Flask(__name__)
 CORS(app)
@@ -33,6 +35,15 @@ ai = Ai("C:/Users/Egor/Documents/GitHub/Telegram-RP-AI-Bot/models/wizardlm-1.0-u
 
 search_object_gpt = {"name": "Нейро", "surname": "мед-сестра", "email": "gpt@gpt.gpt"}
 id_gpt = None
+
+extractor = yake.KeywordExtractor(
+    lan="ru",  # язык
+    n=3,  # максимальное количество слов в фразе
+    dedupLim=0.3,  # порог похожести слов
+    top=10  # количество ключевых слов
+)
+
+
 # add something to data base
 def add_to_database(data, db):
     if db == 'accounts':
@@ -156,19 +167,19 @@ def show_ref():
     return []
 
 
-@app.route('/delete_reference', methods=['DELETE'])
+@app.route('/delete_reference', methods=['POST'])
 @jwt_required()
 def delete_ref():
-    user_id = collection_db.find_one({"email": get_jwt_identity()}).get('_id')
+    user_id = collection_db.find_one({"email": get_jwt_identity()})
+    user_id = str(user_id.get('_id'))
     if user_id:
         data = request.get_json()
         reference_id = data.get('reference_id')
         if reference_id:
-            result = reference_db.delete_one({'_id': reference_id})
-            if result.deleted_count > 0:
-                return jsonify({'message': 'Reference deleted successfully.'}), 200
-            else:
-                return jsonify({'error': 'Reference not found or you do not have permission to delete it.'}), 404
+            print(reference_id)
+            result = reference_db.delete_one({'_id': ObjectId(reference_id)})
+            print('resutl delete',result)
+            return jsonify({'message': 'Success!'}), 200
         else:
             return jsonify({'error': 'Invalid reference_id in request body.'}), 400
     else:
@@ -217,7 +228,7 @@ def update_by_id():
     document = collection_db.find_one({'_id': user})
     print('document', document)
     print('data gety', request.files.get("image"))
-    print(request.files.get("avatar").filename, request.files.get("avatar"))
+    #print(request.files.get("avatar").filename, request.files.get("avatar"))
     if request.files.get("avatar") != None:
         image = request.files['avatar']
 
@@ -228,8 +239,7 @@ def update_by_id():
         print(document)
 
     for key in data.keys():
-        if document[key] is not None:
-            document[key] = data[key]
+        document[key] = data[key]
 
     collection_db.update_one({'_id': user}, {'$set': document})
 
@@ -265,9 +275,12 @@ def show_chat():
     messages = message_db.find({'users': {"$all":[user_id]}})
     for document in messages:
         document["_id"] = str(document["_id"])
-        ids = next((x for x in document["users"] if x != user_id), None)
+        users = document["users"]
+        ids = next((x for x in users if x != user_id), None)
         if ids == None:
             ids = user.get("_id")
+        if users[0] == users[1]:
+            ids = users[0]
         print('id get', ids, user.get("_id"))
         print('id get',ids, user.get("_id"))
         companion = collection_db.find_one({"_id": ObjectId(ids)})
@@ -291,12 +304,12 @@ def show_chat():
 online_users = {}
 
 def extract_text_inside_brackets(text):
-    pattern = r"((.*?))"
+    pattern = r"(\(.*?\))"
     result = re.search(pattern, text)
     if result:
-        return result.group(1)
+        return result.group(1).replace("(","").replace(")","")
     else:
-        return None
+        return ""
 
 @socketio.on('connected')
 def handle_connected(data):
@@ -310,14 +323,27 @@ def handle_connected(data):
 
     print("id room", id_room)
     print('user id', user_id)
+    print('id gpt', id_gpt)
 
     if id_room == None or user_id == None:
         return
 
-    if not collection_db.find_one({"_id": ObjectId(id_room)}) or not collection_db.find_one({"_id": ObjectId(user_id)}):
-        return
+    room_obj = None
+    if id_room:
+        room_obj = collection_db.find_one({"_id": ObjectId(id_room)})
 
-    message_send = message_db.find_one({"users": {"$all": [id_room, user_id]}})
+    user_obj = None
+    if user_id:
+        user_obj = collection_db.find_one({"_id": ObjectId(user_id)})
+    if not room_obj or not user_obj:
+        print("room obj", room_obj)
+        print("user obj", user_obj)
+        return
+    print('id_room, user_id',id_room, user_id,id_room== user_id)
+    if id_room == user_id:
+        message_send = message_db.find_one({"users": [id_room, user_id]})
+    else:
+        message_send = message_db.find_one({"users": {"$all": [id_room, user_id]}})
     print('message send', message_send)
     if message_send:
         message_send['_id'] = str(message_send['_id'])
@@ -342,6 +368,13 @@ def handle_disconnect():
     if user_data:
         emit('online', {"online": False, "user_id": str(user_data.get('user_id'))}, room=user_data.get('room'))
         online_users[request.sid] = False
+
+def searchMainTopic(text, top=1):
+    res = extractor.extract_keywords(text)
+    res = res[:top]
+    if len(res) > 0:
+        return res[0]
+    return ""
 
 @socketio.on('message')
 def handle_message(data):
@@ -375,7 +408,7 @@ def handle_message(data):
         #     messages=get_message['messages'],
         #     # proxy="http://149.50.134.203:80",
         # )
-        gpt_obj = {"role": "assistant", "content": result, "text": result, "date": time.time(), "user_id": id_gpt}
+        gpt_obj = {"role": "assistant", "content": result, "text": result, "date": time.time(), "user_id": id_gpt, "topic": searchMainTopic(result), "google": extract_text_inside_brackets(result)}
         print(get_message['messages'])
         print(result)
     # message_db.update_one({'user_id': data.get('user_id')}, {'$set': get_message})
@@ -412,6 +445,70 @@ def transfer_data(message):
 def default_error_handler(e):
     print("Error: {}".format(e))
     socketio.stop()
+
+
+
+@app.route('/add_to_history', methods=['POST'])
+@jwt_required()
+def add_to_history():
+    user_email = get_jwt_identity()
+    user_data = collection_db.find_one({"email": user_email})
+    user_id = str(user_data['_id'])
+
+    new_object = {'history': [], 'user_id': user_id}
+    object = history_db.find_one({'user_id': user_id})
+
+    if not object:
+        new_object = {'history': [], 'user_id': user_id}
+        history_db.insert(new_object)
+
+    description = request.json['description']
+    date = request.json['date']
+    history_item = {'description': description, 'date': date}
+
+    result = history_db.update_one(
+        {'user_id': user_id},
+        {'$push': {'history': history_item}}
+    )
+
+    return jsonify({"message": 'Object added to history successfully'}), 200
+
+@app.route('/remove_from_history', methods=['POST'])
+@jwt_required()
+def remove_from_history():
+    user_email = get_jwt_identity()
+    user_data = collection_db.find_one({"email": user_email})
+    user_id = str(user_data['_id'])
+    description = request.json['description']
+    date = request.json['date']
+
+    result = history_db.update_one(
+        {'user_id': user_id},
+        {'$pull': {'history': {'description': description, 'date': date}}}
+    )
+
+    return jsonify({"message": 'Object removed from history successfully'}), 200
+
+@app.route('/get_history', methods=['POST'])
+@jwt_required()
+def get_history():
+    user_email = get_jwt_identity()
+    user_data = collection_db.find_one({"email": user_email})
+
+    if user_data:
+        user_id = str(user_data.get("_id"))
+        result = history_db.find_one({'user_id': user_id})
+
+        if not result:
+            new_object = {'history': [], 'user_id': user_id}
+            history_db.insert_one(new_object)
+            result = new_object
+        if result.get("_id"):
+            result["_id"] = str(result["_id"])
+        print('resutttttt',result)
+        return jsonify(result)
+
+    return jsonify({})
 
 def initGptUser():
     global id_gpt
