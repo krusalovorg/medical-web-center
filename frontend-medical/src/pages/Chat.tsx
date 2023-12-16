@@ -167,6 +167,7 @@ function Chat() {
                             <UserMessage
                                 setId={setSelectId}
                                 setData={setSelectedUserChat}
+                                
                                 data={{
                                     select: selectId == item?._id,
                                     id: item?._id,
@@ -216,9 +217,10 @@ function Chat() {
                                 Отлично ПРЕКРАСНо спасибо !
                             </div>
                             {
-                                messages.map((item: any) => {
+                                messages && messages.length > 0 && messages.map((item: any) => {
                                     //console.log(item)
-                                    return <div className="max-w-[70%] w-fit bg-white shadow-md rounded-2xl p-7">
+                                    const this_my = item?.user_id == userData?._id;
+                                    return <div className={`max-w-[70%] w-fit bg-white shadow-md rounded-2xl p-7 ${this_my ? "ml-auto" : ""}`}>
                                         {item?.text}
                                     </div>
                                 })

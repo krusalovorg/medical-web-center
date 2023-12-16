@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 
-const DateInput = ({ onChange }: { onChange: any }) => {
+const DateInput = ({ onChange, value }: { onChange: any, value: any }) => {
   const ref = useRef(null);
   return (
     <div
@@ -28,6 +28,7 @@ const DateInput = ({ onChange }: { onChange: any }) => {
       <input
         ref={ref}
         type="date"
+        value={value}
         onChange={(e) => onChange(e.target.value)}
         className="border-none pl-3 h-full cursor-pointer focus:outline-none w-full bg-transparent placeholder-text-[#C9CBD2] font-[Montserrat]"
         placeholder="ДД.ММ.ГГГГ"

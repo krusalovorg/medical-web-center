@@ -58,7 +58,6 @@ function References() {
     }
 
     async function addReference() {
-        setSubmited(true);
         // const errors = checkErrors(true);
         console.log(date.toString())
         if (selectCategory) {
@@ -74,6 +73,28 @@ function References() {
                     Authorization: "Bearer " + getCookieToken(),
                 },
                 body: new_userData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('User updated successfully:', data);
+                    setOpen(false)
+                })
+                .catch(error => {
+                    console.error('Error updating user:', error);
+                });
+        }
+    }
+
+    async function deleteReference() {
+        if (refSelected) {
+            fetch(URL_SERVER + '/delete_reference', {
+                method: 'DELETE',
+                headers: {
+                    Authorization: "Bearer " + getCookieToken(),
+                },
+                body: JSON.stringify({
+                    reference_id: refSelected?._id
+                })
             })
                 .then(response => response.json())
                 .then(data => {
@@ -111,11 +132,18 @@ function References() {
                         >
                             {isHovered && (
                                 <div
-                                onClick={()=>{
-                                    window.location
-                                }}
-                                className="absolute top-0 bg-gray-800 bg-opacity-25 rounded-xl w-full h-full flex items-center justify-center">
-                                    <div className="text-white text-lg">Добавить изображение</div>
+                                    onClick={() => {
+                                        if (typeModal == 'show') {
+                                            const newWindow = window.open(getImage(refSelected?.image), '_blank');
+                                            if (newWindow) {
+                                                newWindow.focus();
+                                            } else {
+                                                window.location.href = refSelected?.image;
+                                            }
+                                        }
+                                    }}
+                                    className="absolute top-0 bg-gray-800 bg-opacity-25 rounded-xl w-full h-full flex items-center justify-center">
+                                    <div className="text-white text-lg">{typeModal == 'add' ? "Добавить документ" : "Скачать документ"}</div>
                                     {typeModal == 'add' ?
                                         <input
                                             className="absolute w-full h-full opacity-0"
@@ -159,14 +187,22 @@ function References() {
                                 setSelectCategory(t);
                                 setName(t);
                             }} />
-                        <DateInput onChange={setDate} />
+                        <DateInput value={date} onChange={setDate} />
                         {/* <CategoryItem text="Прочее" select={selectCategory} onSelect={setSelectCategory} id={"Прочее"} /> */}
                     </div>
-                    <button
-                        onClick={addReference}
-                        className="outline-none border-none w-full h-[68px] bg-[#0067E3] text-white text-xl rounded-xl">
-                        {typeModal == 'add' ? "Добавить" : "Сохранить"}
-                    </button>
+                    {
+                        typeModal == 'show' ?
+                            <button
+                                onClick={deleteReference}
+                                className="outline-none border-none w-full h-[68px] bg-red-500 text-white text-xl rounded-xl">
+                                Удалить
+                            </button>
+                            : <button
+                                onClick={addReference}
+                                className="outline-none border-none w-full h-[68px] bg-[#0067E3] text-white text-xl rounded-xl">
+                                Добавить
+                            </button>
+                    }
                 </div>
             </Modal>
             <div className="w-full h-full flex justify-center align-center">

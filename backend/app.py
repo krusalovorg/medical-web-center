@@ -15,7 +15,7 @@ cluster = MongoClient("mongodb://localhost:27017")
 accounts_db = cluster["accounts"]
 collection_db = accounts_db["accounts_collection"]
 reference_db = accounts_db["reference_collection"]
-message_db = accounts_db['messages_collection']
+message_db = accounts_db['chats']
 
 app = Flask(__name__)
 CORS(app)
@@ -31,6 +31,8 @@ def add_to_database(data, db):
         collection_db.insert_one(data)
     elif db == 'references':
         reference_db.insert_one(data)
+    elif db == 'messages':
+        message_db.insert_one(data)
 
 
 # password from  data base
@@ -145,6 +147,23 @@ def show_ref():
         return jsonify(result)
     return []
 
+@app.route('/delete_reference', methods=['DELETE'])
+@jwt_required()
+def delete_ref():
+    user_id = collection_db.find_one({"email": get_jwt_identity()}).get('_id')
+    if user_id:
+        data = request.get_json()
+        reference_id = data.get('reference_id')
+        if reference_id:
+            result = reference_db.delete_one({'_id': reference_id})
+            if result.deleted_count > 0:
+                return jsonify({'message': 'Reference deleted successfully.'}), 200
+            else:
+                return jsonify({'error': 'Reference not found or you do not have permission to delete it.'}), 404
+        else:
+            return jsonify({'error': 'Invalid reference_id in request body.'}), 400
+    else:
+        return jsonify({'error': 'User not found.'}), 404
 
 # show doctors
 @app.route('/show_doctor', methods=['POST'])
@@ -244,21 +263,31 @@ def handle_connected(data):
     print('connect data user', data)
     data['user_id'] = str(data.get('user_id'))
     join_room(data.get('room'))  # присоединяем пользователя к комнате с уникальным идентификатором
-    emit('connected', message_db[data.get('room')])
+
+    message_send = message_db.find_one({"users": [data.get('room'), data.get("user_id")]})
+    print('message send',message_send)
+    if message_send:
+        message_send['_id'] = str(message_send['_id'])
+        emit('connected', message_send)
+
     online_users[request.sid] = {"_id": data.get('user_id'), "room": data.get('room')}
-    emit('online', {"online": True, "user_id": data.get('user_id')}, room=online_users.get(request.sid).get('room'))
-    if not message_db.find_one({'user_id': data.get('user_id'), 'room': data.get('room')}):
-        add_to_database({'user_id': data.get('user_id'), 'room': data.get('room'), 'messages': []}, 'messages')
+    print(online_users)
+
+    emit('online', {"online": True, "user_id": str(data.get('user_id'))}, room=online_users.get(request.sid).get('room'))
+    print('findeddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',message_send)
+    if not message_send:
+        print('try create')
+        add_to_database({'users': [data.get('user_id'), data.get('room')], 'messages': []}, 'messages')
 
 
 @socketio.on('disconnect')
 def handle_disconnect():
     disconnected_user_id = request.sid
-    print('disconnected_user_id', disconnected_user_id)
+    print('disconnected_user_id', disconnected_user_id, online_users)
     user_data = online_users.get(request.sid)
-    user_data['user_id'] = str(user_data['user_id'])
+    print('get data disconected',user_data)
     if user_data:
-        emit('online', {"online": False, "user_id": user_data['user_id']}, room=user_data['room'])
+        emit('online', {"online": False, "user_id": str(user_data.get('user_id'))}, room=user_data.get('room'))
         online_users[request.sid] = False
 
 
@@ -268,8 +297,11 @@ def handle_message(data):
     print('get message', data)
     emit('message', data, room=data.get('room'))  # отправляем сообщение только тем, кто в этой комнате
     data['user_id'] = str(data.get('user_id'))
+    print(data.get('user_id'),)
     get_message = message_db.find_one({'user_id': data.get('user_id'), 'room': data.get('room')})
-    get_message['messages'] += data['message']
+    print('get mdgs',get_message)
+    get_message['messages'].append(data)
+    message_db.update_one({'user_id': data.get('user_id')}, {'$set': get_message})
 
 
 # start program
