@@ -111,7 +111,7 @@ def add_reff():
     date = request.form.get('date')
     name = request.form.get('name')
     image_filename = ""
-    print(date,)
+    print(date, )
     if request.files.get("image", False):
         image = request.files['image']
         print('image', image)
@@ -183,8 +183,8 @@ def update_by_id():
     user = collection_db.find_one({"email": get_jwt_identity()})['_id']
     print('get user', user)
     document = collection_db.find_one({'_id': user})
-    print('document',document)
-    print('data gety',request.files.get("image"))
+    print('document', document)
+    print('data gety', request.files.get("image"))
     print(request.files.get("avatar").filename, request.files.get("avatar"))
     if request.files.get("avatar") != None:
         image = request.files['avatar']
@@ -203,12 +203,14 @@ def update_by_id():
 
     return jsonify({'message': 'User updated successfully'})
 
+
 # send image
 @app.route('/image/<image_name>', methods=['GET'])
 def send_image(image_name):
     image_path = os.path.join(app.root_path, 'images', image_name)
     return send_file(image_path, as_attachment=True)
-    
+
+
 @app.route('/show_messages', methods=['POST'])
 @jwt_required()
 def show_mess():
@@ -217,28 +219,27 @@ def show_mess():
     messages = reference_db.find({'user_id': data.get('user_id'), 'room': data.get('room')})
     for document in messages:
         result.append(document)
-    return jsonify({result})
+    return jsonify(result)
 
-msgs = {}
 
 online_users = {}
+
 
 @socketio.on('connected')
 def handle_connected(data):
     print('connect data user', data)
     join_room(data.get('room'))  # присоединяем пользователя к комнате с уникальным идентификатором
-    if msgs.get(data.get('room')) == None:
-        msgs[data['room']] = []
-    emit('connected', msgs[data['room']])
-    online_users[request.sid] = {"_id": data['user_id'], "room": data['room']}
-    emit('online', {"online": True, "user_id": data['user_id']}, room=online_users.get(request.sid).get('room'))
-    if not message_db.find_one({'user_id': data.get('user_id')}) and not message_db.find_one({'room': data.get('room')}):
+    emit('connected', message_db[data.get('room')])
+    online_users[request.sid] = {"_id": data.get('user_id'), "room": data.get('room')}
+    emit('online', {"online": True, "user_id": data.get('user_id')}, room=online_users.get(request.sid).get('room'))
+    if not message_db.find_one({'user_id': data.get('user_id'), 'room': data.get('room')}):
         add_to_database({'user_id': data.get('user_id'), 'room': data.get('room'), 'messages': []}, 'messages')
+
 
 @socketio.on('disconnect')
 def handle_disconnect():
     disconnected_user_id = request.sid
-    print('disconnected_user_id',disconnected_user_id)
+    print('disconnected_user_id', disconnected_user_id)
     user_data = online_users.get(request.sid)
     if user_data:
         emit('online', {"online": False, "user_id": user_data['user_id']}, room=user_data['room'])
@@ -247,15 +248,15 @@ def handle_disconnect():
 
 @socketio.on('message')
 def handle_message(data):
-    #add_to_database(data, 'messages')  # сохраняем сообщение в MongoDB
+    # add_to_database(data, 'messages')  # сохраняем сообщение в MongoDB
     print('get message', data)
-    msgs[data['room']].append(data)
     emit('message', data, room=data['room'])  # отправляем сообщение только тем, кто в этой комнате
-    get_message = message_db.find_one({'user_id': data['user_id']})
+    get_message = message_db.find_one({'user_id': data.get('user_id'), 'room': data.get('room')})
     get_message['messages'] += data['message']
+
 
 # start program
 if __name__ == '__main__':
-    #socketio.run(app, allow_unsafe_werkzeug=True)
-    http_server = WSGIServer(('127.0.0.1',5000), app, handler_class=WebSocketHandler)
+    # socketio.run(app, allow_unsafe_werkzeug=True)
+    http_server = WSGIServer(('127.0.0.1', 5000), app, handler_class=WebSocketHandler)
     http_server.serve_forever()
