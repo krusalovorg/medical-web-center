@@ -125,7 +125,7 @@ def add_reff():
     else:
         return jsonify({'message': 'user not found'})
 
-    add_to_database({'user_id': person_id, 'date': date, 'image': image_filename, 'name': name}, reference_db)
+    add_to_database({'user_id': person_id, 'date': date, 'image': image_filename, 'name': name}, 'references')
     return jsonify({'message': 'добавленно в таблицу '})
 
 
@@ -139,6 +139,9 @@ def show_ref():
         user = reference_db.find({'user_id': user_id})
         for document in user:
             result.append(document)
+            document["_id"] = str(document['_id'])
+            document['user_id'] = str(document['user_id'])
+        print('resukt',result)
         return jsonify(result)
     return []
 

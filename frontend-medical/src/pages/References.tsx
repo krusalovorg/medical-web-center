@@ -26,6 +26,10 @@ function References() {
 
     const [references, setReferences] = useState<any[]>([]);
 
+    const [typeModal, setTypeModal] = useState('add');
+
+    const [refSelected, setRefSelected] = useState<any>('');
+
     const userData = useContext(UserContext);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,6 +87,12 @@ function References() {
     }
 
     useEffect(() => {
+        if (!open) {
+            setTypeModal('add')
+        }
+    }, [open])
+
+    useEffect(() => {
         load()
     }, [])
 
@@ -91,7 +101,7 @@ function References() {
             <Modal
                 open={open}
                 setOpen={setOpen}
-                title={"Добавить справку"}>
+                title={typeModal == 'add' ? "Добавить справку" : name}>
                 <div className="mt-2">
                     <div className="min-h-[500px] h-fit mt-5 flex flex-col gap-3 mb-5">
                         <div
@@ -100,27 +110,38 @@ function References() {
                             onMouseLeave={() => setIsHovered(false)}
                         >
                             {isHovered && (
-                                <div className="absolute top-0 bg-gray-800 bg-opacity-25 rounded-xl w-full h-full flex items-center justify-center">
+                                <div
+                                onClick={()=>{
+                                    window.location
+                                }}
+                                className="absolute top-0 bg-gray-800 bg-opacity-25 rounded-xl w-full h-full flex items-center justify-center">
                                     <div className="text-white text-lg">Добавить изображение</div>
-                                    <input
-                                        className="absolute w-full h-full opacity-0"
-                                        type="file"
-                                        accept=".jpg,.png"
-                                        onChange={handleImageChange}
-                                    />
+                                    {typeModal == 'add' ?
+                                        <input
+                                            className="absolute w-full h-full opacity-0"
+                                            type="file"
+                                            accept=".jpg,.png"
+                                            onChange={handleImageChange}
+                                        />
+                                        : <></>
+                                    }
                                 </div>
                             )}
                             <img
                                 src={
-                                    (file && newFileAsImage) ? newFileAsImage :
-                                        "/image.svg"
+                                    typeModal == 'add' ? ((file && newFileAsImage) ? newFileAsImage :
+                                        "/image.svg") :
+                                        getImage(refSelected?.image)
                                 }
-                                className={(file && newFileAsImage) ? `w-full h-[160px] rounded-md` : "w-[32px] h-[32px]"}
+                                className={((file && newFileAsImage) || (typeModal == 'show')) ? `w-full h-[160px] rounded-md` : "w-[32px] h-[32px]"}
                                 style={{
                                     aspectRatio: 1
                                 }}
                             />
-                            <h2 className="text-sm text-black font-[Montserrat] mt-2 truncate max-w-[200px]">{file ? file?.name : "Нажмите чтобы добавить"}</h2>
+                            <h2 className="text-sm text-black font-[Montserrat] mt-2 truncate max-w-[200px]">
+                                {typeModal == 'add' ? (file ? file?.name : "Нажмите чтобы добавить")
+                                    : "Нажмите чтобы скачать"}
+                            </h2>
                         </div>
                         <h1 className={`text-lg text-black font-[Montserrat]`}>
                             Выберете или добавьте тип справки
@@ -144,7 +165,7 @@ function References() {
                     <button
                         onClick={addReference}
                         className="outline-none border-none w-full h-[68px] bg-[#0067E3] text-white text-xl rounded-xl">
-                        Добавить
+                        {typeModal == 'add' ? "Добавить" : "Сохранить"}
                     </button>
                 </div>
             </Modal>
@@ -158,18 +179,32 @@ function References() {
                                 </h1>
                             </div>
                         </div>
-                        {
-                            references && references.length > 0 && references.map((item) =>
-                                <div className="px-[3%] pt-2 flex flex-wrap w-full">
+                        <div className="px-[3%] pt-2 flex flex-wrap w-full gap-5">
+                            {
+                                references && references.length > 0 && references.map((item) =>
                                     <div
-                                        onClick={() => setOpen(true)}
-                                        className="w-[250px] h-[250px] cursor-pointer bg-white shadow-md rounded-2xl border-2 border-[#2966de] border-dashed flex justify-center items-center">
-                                            <img src={getImage(item?.image)}/>
+                                        onClick={() => {
+                                            setOpen(true)
+                                            setTypeModal('show');
+                                            setName(item?.name)
+                                            setSelectCategory(item?.name);
+                                            setDate(item?.date)
+                                            setRefSelected(item);
+                                            console.log(item)
+                                        }}
+                                        className="w-[350px] h-[250px] cursor-pointer flex flex-col items-start justify-center bg-white shadow-md rounded-2xl">
+                                        <img src={getImage(item?.image)} className="w-full h-[70%] rounded-t-2xl" />
+                                        <div className="flex flex-row justify-between mb-auto mt-auto px-5 w-full">
+                                            <h1 className={`text-md text-black font-[Montserrat]`}>
+                                                {item?.name}
+                                            </h1>
+                                            <h1 className={`text-md text-black font-[Montserrat]`}>
+                                                {item?.date}
+                                            </h1>
+                                        </div>
                                     </div>
-                                </div>
-                            )
-                        }
-                        <div className="px-[3%] pt-2 flex flex-wrap w-full">
+                                )
+                            }
                             <div
                                 onClick={() => setOpen(true)}
                                 className="w-[250px] h-[250px] cursor-pointer bg-white shadow-md rounded-2xl border-2 border-[#2966de] border-dashed flex justify-center items-center">
