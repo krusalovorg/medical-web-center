@@ -242,7 +242,7 @@ online_users = {}
 @socketio.on('connected')
 def handle_connected(data):
     print('connect data user', data)
-    data['user_id'] = data['user_id']
+    data['user_id'] = str(data.get('user_id'))
     join_room(data.get('room'))  # присоединяем пользователя к комнате с уникальным идентификатором
     emit('connected', message_db[data.get('room')])
     online_users[request.sid] = {"_id": data.get('user_id'), "room": data.get('room')}
@@ -266,8 +266,8 @@ def handle_disconnect():
 def handle_message(data):
     # add_to_database(data, 'messages')  # сохраняем сообщение в MongoDB
     print('get message', data)
-    emit('message', data, room=data['room'])  # отправляем сообщение только тем, кто в этой комнате
-    data['user_id'] = str(data['user_id'])
+    emit('message', data, room=data.get('room'))  # отправляем сообщение только тем, кто в этой комнате
+    data['user_id'] = str(data.get('user_id'))
     get_message = message_db.find_one({'user_id': data.get('user_id'), 'room': data.get('room')})
     get_message['messages'] += data['message']
 
