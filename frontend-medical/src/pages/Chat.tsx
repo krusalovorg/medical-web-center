@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import SearchInput from "../components/SearchInput";
 import UserMessage from "../components/UserMessage";
 import Plus from "../icons/Plus";
-import { UserData, getCookieToken, getDoctors, getImage, getUserData } from "../utils/backend";
+import { UserData, getChats, getCookieToken, getDoctors, getImage, getUserData } from "../utils/backend";
 import socketIOClient from 'socket.io-client';
 import Modal from "../components/Modal";
 import { io } from "socket.io-client";
@@ -93,7 +93,8 @@ function Chat() {
     }
 
     async function loadChats() {
-        const res = await getDoctors('');
+        const res = await getChats();
+        console.log('res',res)
         setAllChats(res);
     }
 

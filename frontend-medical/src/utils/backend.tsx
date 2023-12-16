@@ -74,6 +74,27 @@ export const getDoctors = async (searchText: string) => {
     }
 };
 
+export const getChats = async () => {
+    try {
+        console.log('cookie:::', getCookieToken())
+        const response = await fetch(URL_SERVER + "/show_chats", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + getCookieToken(),
+            }
+        })
+        if (!response.ok) {
+            throw new Error("Network response was not ok");
+        }
+        const data = await response.json();
+        return data as UserData[];
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        throw error;
+    }
+};
+
 export const getReferences = async () => {
     try {
         const response = await fetch(URL_SERVER + "/show_references", {
