@@ -9,10 +9,12 @@ import Modal from "../components/Modal";
 const ENDPOINT = "http://127.0.0.1:5000";
 
 function Chat() {
-    const [selectId, setSelectId] = useState<any>('');
+    const [selectId, setSelectId] = useState<any>();
     const [searchText, setSearchText] = useState('');
     const [doctorsSearch, setDoctorsSearch] = useState<UserData[]>([]);
     const [renderDoctors, setRenderDoctors] = useState();
+
+    const [allChats, setAllChats] = useState<UserData[]>([]);
 
     const [open, setOpen] = useState(false);
     const [selectCreateChatUser, setSelectCreateChatUser] = useState<any>(0);
@@ -28,20 +30,21 @@ function Chat() {
         const token = getCookieToken();
         if (token) {
             const user = await getUserData(token);
+            console.log('user',user, selectId)
             setSelectedUserChat(user)
         }
     }
 
-    useEffect(()=>{
+    useEffect(() => {
         loadUser();
-    },[selectId])
+    }, [selectId])
 
     useEffect(() => {
         const socket = socketIOClient(ENDPOINT);
         socket.emit('connected', { room: room });
 
         socket.on('message', (data: any) => {
-            console.log('get data:',data)
+            console.log('get data:', data)
             setMessages([...messages, data]);
         });
 
@@ -66,9 +69,19 @@ function Chat() {
         }
     }
 
+    async function loadChats() {
+        const res = await getDoctors('');
+        setAllChats(res);
+    }
+
+
     useEffect(() => {
         load()
     }, [searchText])
+
+    useEffect(() => {
+        loadChats();
+    }, [])
 
     return (
         <>
@@ -127,15 +140,16 @@ function Chat() {
                     </div>
 
                     <div className="bg-[#F7F8FD] h-full px-4 gap-3">
-                        <UserMessage
-                            setId={setSelectId}
-                            data={{
-                                name: "Егор",
-                                surname: "Дудкин",
-                                select: selectId == 1,
-                                id: 1,
-                                text: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.                        "
-                            }} />
+                        {allChats?.length > 0 && allChats.map((item, index: number) =>
+                            <UserMessage
+                                setId={setSelectId}
+                                setData={setSelectedUserChat}
+                                data={{
+                                    select: selectId == item?._id,
+                                    id: item?._id,
+                                    text: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+                                    ...item
+                                }} />)}
                         {(doctorsSearch?.length > 0 || searchText) && !open &&
                             <>
                                 <h1 className={`text-lg text-black font-[Montserrat] mb-2 px-2 py-4 border-b-2 border-b-[#E8E9EA]`}>
@@ -144,6 +158,7 @@ function Chat() {
                                 {doctorsSearch?.length > 0 && doctorsSearch.map((item, index: number) =>
                                     <UserMessage
                                         setId={setSelectId}
+                                        setData={setSelectedUserChat}
                                         data={{
                                             select: selectId == item?._id,
                                             id: item?._id,
@@ -158,7 +173,7 @@ function Chat() {
                         <div className="w-full bg-white h-[80px] rounded-t-3xl flex flex-row items-center px-5">
                             <img
                                 src={getImage(selectedUserChat?.avatar)}
-                                className={`min-w-[56px] h-[56px] rounded-full`}
+                                className={`min-w-[56px] w-[56px] h-[56px] rounded-full`}
                             />
                             <div className="ml-5 gap-2">
                                 <h1 className={`text-xl text-black font-[Montserrat]`}>

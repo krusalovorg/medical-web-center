@@ -70,9 +70,16 @@ function Profile() {
             if (value?.length === 0) {
                 console.log('Field', field, 'is empty');
                 if (submited || submited_local) {
-                    errors_res = { ...errors_res, [field]: "Поле не заполнено" }
+                    if (doctor.includes(field)) {
+                        if (userData?.isDoctor) {
+                            errors_res = { ...errors_res, [field]: "Поле не заполнено" }
+                            error = true;
+                        }
+                    } else {
+                        errors_res = { ...errors_res, [field]: "Поле не заполнено" }
+                        error = true;
+                    }
                 }
-                error = true;
             } else {
                 errors_res = { ...errors_res, [field]: "" }
             }
@@ -90,12 +97,18 @@ function Profile() {
         const errors = checkErrors(true);
         if (!errors) {
             const fields = { name, surname, patronymic, city, position, expirience, lernPosition };
-            const userData = new FormData();
+            const new_userData = new FormData();
             for (const field in fields) {
                 const value = (fields as any)[field];
-                if (value != (userData as any)[field]) {
-                    userData.append(field, value);
+                console.log(value, (userData as any)[field],field)
+                if (value != (userData as any)[field] && value.length > 0) {
+                    new_userData.append(field, value);
                 }
+            }
+
+            if (file) {
+                console.log("formData.images", file)
+                new_userData.append('avatar', file, file.name);
             }
 
             fetch(URL_SERVER + '/update_user', {
@@ -103,7 +116,7 @@ function Profile() {
                 headers: {
                     Authorization: "Bearer " + getCookieToken(),
                 },
-                body: userData
+                body: new_userData
             })
                 .then(response => response.json())
                 .then(data => {

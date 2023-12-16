@@ -173,21 +173,28 @@ def get_user():
 def update_by_id():
     data = request.form
 
-    user = get_user()['_id']
+    user = collection_db.find_one({"email": get_jwt_identity()})['_id']
+    print('get user', user)
     document = collection_db.find_one({'_id': user})
+    print('document',document)
+    print('data gety',request.files.get("image"))
+    print(request.files.get("avatar").filename, request.files.get("avatar"))
+    if request.files.get("avatar") != None:
+        image = request.files['avatar']
+
+        print('avatar::::::::::::::', image)
+        path = os.path.join(app.root_path, 'images', image.filename)
+        image.save(path)
+        document['avatar'] = image.filename
+        print(document)
 
     for key in data.keys():
-        if key == 'avatar':
-            if 'image' in request.files:
-                image = request.files['image']
-                print('image', image)
-                path = os.path.join(app.root_path, 'images', secure_filename(image.filename))
-                image.save(path)
-                data['image'] = secure_filename(image.filename)
-
-        document[key] = data[key]
+        if document[key] is not None:
+            document[key] = data[key]
 
     collection_db.update_one({'_id': user}, {'$set': document})
+
+    return jsonify({'message': 'User updated successfully'})
 
 # send image
 @app.route('/image/<image_name>', methods=['GET'])

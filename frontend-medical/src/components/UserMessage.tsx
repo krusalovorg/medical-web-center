@@ -1,6 +1,6 @@
 import { UserData, getImage } from "../utils/backend";
 
-function UserMessage({ data, setId }: { data: UserData | any, setId?: any }) {
+function UserMessage({ data, setId, setData }: { data: UserData | any, setId?: any, setData?: any }) {
     const select = data?.select;
     return (
         <>
@@ -9,11 +9,14 @@ function UserMessage({ data, setId }: { data: UserData | any, setId?: any }) {
                     if (setId) {
                         setId(data?.id || 0)
                     }
+                    if (setData) {
+                        setData(data);
+                    }
                 }}
                 className={`w-full p-5 rounded-3xl flex flex-row items-start mb-2 ${select ? 'bg-[#0067E3]' : ''} cursor-pointer`}>
                 <img
                     src={getImage(data?.avatar)}
-                    className={`min-w-[56px] h-[56px] rounded-full ${select && 'border-white border-2'}`}
+                    className={`min-w-[56px] w-[56px] h-[56px] rounded-full ${select && 'border-white border-2'}`}
                 />
                 <div className="pl-4" style={{
                     width: "calc(100% - 60px)"
