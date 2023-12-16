@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import SearchInput from "../components/SearchInput";
 import UserMessage from "../components/UserMessage";
 import Plus from "../icons/Plus";
 import { UserData, getCookieToken, getDoctors, getImage, getUserData } from "../utils/backend";
 import socketIOClient from 'socket.io-client';
 import Modal from "../components/Modal";
+import { io } from "socket.io-client";
+import UserContext from "../contexts/UserContext";
 
 const ENDPOINT = "http://127.0.0.1:5000";
 
@@ -21,40 +23,61 @@ function Chat() {
 
     const [selectedUserChat, setSelectedUserChat] = useState<UserData>({} as any);
 
-    const [room, setRoom] = useState("general");  // Идентификатор комнаты
-
     const [text, setText] = useState<string>("");
     const [messages, setMessages] = useState<any>([]);
+
+    const [onlineUser, setOnlineUser] = useState(false);
+
+    const userData = useContext(UserContext);
 
     async function loadUser() {
         const token = getCookieToken();
         if (token) {
             const user = await getUserData(token);
-            console.log('user',user, selectId)
+            console.log('user', user, selectId)
             setSelectedUserChat(user)
         }
     }
 
     useEffect(() => {
-        loadUser();
+        //loadUser();
     }, [selectId])
 
     useEffect(() => {
-        const socket = socketIOClient(ENDPOINT);
-        socket.emit('connected', { room: room });
+        const socket = io(ENDPOINT);
 
-        socket.on('message', (data: any) => {
-            console.log('get data:', data)
-            setMessages([...messages, data]);
+        socket.emit('connected', { room: selectId, user_id: userData._id });
+
+        socket.on('connected', (messages) => {
+            console.log('get data:', messages);
+            setMessages(messages);
         });
 
-        return () => socket.disconnect();
-    }, [messages, room]);
+        socket.on('message', (message) => {
+            console.log('get data:', message, [...messages, message]);
+            setMessages([...messages, message]);
+        });
+
+        socket.on('online', (online: any) => {
+            console.log('getonline', online)
+            if (online.user_id === userData._id) {
+                setOnlineUser(online?.online);
+            }
+        });
+
+        socket.on('typing', (typing) => {
+            // обработка события typing
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [selectId]);
 
     const sendMessage = () => {
         if (text.length > 0) {
-            const socket = socketIOClient(ENDPOINT);
-            socket.emit('message', { room: room, text: text });
+            const socket = io(ENDPOINT);
+            socket.emit('message', { room: selectId, text: text, user_id: userData._id });
             setText("");  // Очистить поле ввода после отправки
         }
     };
@@ -179,7 +202,7 @@ function Chat() {
                                 <h1 className={`text-xl text-black font-[Montserrat]`}>
                                     {selectedUserChat?.surname} {selectedUserChat?.name}
                                 </h1>
-                                <h2 className={`text-black ml-auto font-[Montserrat]`}>в сети</h2>
+                                <h2 className={`text-black ml-auto font-[Montserrat]`}>{onlineUser ? "в сети" : "не в сети"}</h2>
                             </div>
                         </div>
                         <div className="w-full h-full overflow-scroll overflow-x-hidden px-5 flex gap-4 flex-col" style={{

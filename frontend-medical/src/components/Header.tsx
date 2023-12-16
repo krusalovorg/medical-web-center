@@ -12,7 +12,7 @@ function Header() {
             <h1 className="text-black font-semibold">Медики онлайн</h1>
             {userData?.name &&
                 <div className="flex flex-row items-center cursor-pointer" onClick={()=>navigate('/user')}>
-                    <h1 className="text-black font-semibold">Дудкин Егор</h1>
+                    <h1 className="text-black font-semibold">{userData.surname} {userData.name}</h1>
                     <img
                         src={getImage(userData?.avatar)}
                         className="w-[42px] h-[42px] rounded-full ml-2"

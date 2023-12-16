@@ -8,6 +8,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.utils import secure_filename
 
+from gevent.pywsgi import WSGIServer
+from geventwebsocket.handler import WebSocketHandler
+
 cluster = MongoClient("mongodb://localhost:27017")
 accounts_db = cluster["accounts"]
 collection_db = accounts_db["accounts_collection"]
@@ -203,23 +206,40 @@ def send_image(image_name):
     return send_file(image_path, as_attachment=True)
 
 
-msgs = []
+msgs = {}
 
+online_users = {}
 
 @socketio.on('connected')
 def handle_connected(data):
     print('connect data user', data)
-    join_room(data['room'])  # присоединяем пользователя к комнате с уникальным идентификатором
+    join_room(data.get('room'))  # присоединяем пользователя к комнате с уникальным идентификатором
+    if msgs.get(data.get('room')) == None:
+        msgs[data['room']] = []
+    emit('connected', msgs[data['room']])
+    online_users[request.sid] = {"_id": data['user_id'], "room": data['room']}
+    emit('online', {"online": True, "user_id": data['user_id']}, room=online_users.get(request.sid).get('room'))
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    disconnected_user_id = request.sid
+    print('disconnected_user_id',disconnected_user_id)
+    user_data = online_users.get(request.sid)
+    if user_data:
+        emit('online', {"online": False, "user_id": user_data['user_id']}, room=user_data['room'])
+        online_users[request.sid] = False
 
 
 @socketio.on('message')
 def handle_message(data):
-    add_to_database(data, 'messages')  # сохраняем сообщение в MongoDB
+    #add_to_database(data, 'messages')  # сохраняем сообщение в MongoDB
     print('get message', data)
-    msgs.append(data)
+    msgs[data['room']].append(data)
     emit('message', data, room=data['room'])  # отправляем сообщение только тем, кто в этой комнате
 
 
 # start program
 if __name__ == '__main__':
-    socketio.run(app, allow_unsafe_werkzeug=True)
+    #socketio.run(app, allow_unsafe_werkzeug=True)
+    http_server = WSGIServer(('127.0.0.1',5000), app, handler_class=WebSocketHandler)
+    http_server.serve_forever()
