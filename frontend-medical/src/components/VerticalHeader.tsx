@@ -4,6 +4,7 @@ import Mail from '../icons/Mail';
 import User from '../icons/User';
 import Logout from '../icons/Logout';
 import { logout } from '../utils/backend';
+import FileIcon from '../icons/FileIcon';
 
 function VerticalHeader({ children }: any) {
     const navigate = useNavigate();
@@ -17,6 +18,9 @@ function VerticalHeader({ children }: any) {
                 </div>
                 <div onClick={() => navigate("/chats")} className={`p-[20px] rounded-full cursor-pointer ${url == '/chats' ? 'text-white bg-[#0067E3]' : 'text-black'}`} >
                     <Mail />
+                </div>
+                <div onClick={() => navigate("/references")} className={`p-[20px] rounded-full cursor-pointer ${url == '/references' ? 'text-white bg-[#0067E3]' : 'text-black'}`} >
+                    <FileIcon />
                 </div>
                 <div onClick={() => logout()} className={`p-[20px] rounded-full cursor-pointer mt-auto mb-2 text-black`} >
                     <Logout />

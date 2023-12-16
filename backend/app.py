@@ -108,15 +108,16 @@ def login():
 @app.route('/add_references', methods=['POST'])
 @jwt_required()
 def add_reff():
-    data = request.get_json()
-    date = data.get['date']
+    date = request.form.get('date')
+    name = request.form.get('name')
+    image_filename = ""
+    print(date,)
     if request.files.get("image", False):
         image = request.files['image']
         print('image', image)
         path = os.path.join(app.root_path, 'images', image.filename)
         image.save(path)
-        data['image'] = image.filename
-    img = data['image']
+        image_filename = image.filename
     if collection_db.find_one({"email": get_jwt_identity()}):
         person_id = collection_db.find_one({"email": get_jwt_identity()})['_id']
     elif collection_db.find_one({"phone_number": get_jwt_identity()}):
@@ -124,7 +125,7 @@ def add_reff():
     else:
         return jsonify({'message': 'user not found'})
 
-    add_to_database({'_id': person_id, 'date': date, 'image': img}, reference_db)
+    add_to_database({'user_id': person_id, 'date': date, 'image': image_filename, 'name': name}, reference_db)
     return jsonify({'message': 'добавленно в таблицу '})
 
 
@@ -133,10 +134,13 @@ def add_reff():
 @jwt_required()
 def show_ref():
     result = []
-    user = reference_db.find({})
-    for document in user:
-        result.append(document)
-    return jsonify({result})
+    user_id = collection_db.find_one({"email": get_jwt_identity()}).get('_id')
+    if user_id:
+        user = reference_db.find({'user_id': user_id})
+        for document in user:
+            result.append(document)
+        return jsonify(result)
+    return []
 
 
 # show doctors

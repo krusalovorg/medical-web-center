@@ -100,7 +100,7 @@ function Profile() {
             const new_userData = new FormData();
             for (const field in fields) {
                 const value = (fields as any)[field];
-                console.log(value, (userData as any)[field],field)
+                console.log(value, (userData as any)[field], field)
                 if (value != (userData as any)[field] && value.length > 0) {
                     new_userData.append(field, value);
                 }

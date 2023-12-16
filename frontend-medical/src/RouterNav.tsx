@@ -8,6 +8,7 @@ import { UserData, getCookieToken, getUserData } from './utils/backend';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
 import User from './contexts/UserContext';
+import References from './pages/References';
 
 function RouterNav() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -42,6 +43,7 @@ function RouterNav() {
                                     <Route path='*' element={<App />} />
                                     <Route path='/chats' element={<Chat />} />
                                     <Route path='/user' element={<Profile />} />
+                                    <Route path='/references' element={<References/>} />
                                 </Routes>
                             </VerticalHeader>
                         </User.Provider>

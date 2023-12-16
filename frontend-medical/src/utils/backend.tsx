@@ -74,6 +74,26 @@ export const getDoctors = async (searchText: string) => {
     }
 };
 
+export const getReferences = async () => {
+    try {
+        const response = await fetch(URL_SERVER + "/show_references", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + getCookieToken(),
+            }
+        });
+        if (!response.ok) {
+            throw new Error("Network response was not ok");
+        }
+        const data = await response.json();
+        return data as UserData[];
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        throw error;
+    }
+};
+
 
 export const logout = () => {
     const cookies = document.cookie.split(";");
