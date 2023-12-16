@@ -11,6 +11,7 @@ cluster = MongoClient("mongodb://localhost:27017")
 accounts_db = cluster["accounts"]
 collection_db = accounts_db["accounts_collection"]
 reference_db = accounts_db["reference_collection"]
+message_db = accounts_db['messages_collection']
 
 app = Flask(__name__)
 CORS(app)
@@ -18,6 +19,7 @@ app.config['JWT_SECRET_KEY'] = 'your_secret_key'
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
 jwt = JWTManager(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
+
 
 # add something to data base
 def add_to_database(data, db):
@@ -69,7 +71,8 @@ def register():
     add_to_database(
         {'name': name, 'surname': surname, 'patronymic': patronymic, 'password': password, 'phone_number': phone_number,
          'email': email,
-         'birthday': birthday, 'position': position, 'user_type': isDoctor, 'avatar': avatar, 'expirience': expirience,'place':place},
+         'birthday': birthday, 'position': position, 'user_type': isDoctor, 'avatar': avatar, 'expirience': expirience,
+         'place': place},
         'accounts')
     return jsonify({'message': 'User registered successfully'})
 
@@ -160,7 +163,7 @@ def get_user():
     user = collection_db.find_one({"email": get_jwt_identity()})
     user['_id'] = str(user['_id'])
     del user['password']
-    print('user',user, get_jwt_identity())
+    print('user', user, get_jwt_identity())
     return jsonify(user)
 
 
@@ -171,8 +174,16 @@ def update_by_id():
     user = get_user()['_id']
     document = collection_db.find_one({'_id': user})
     for key in data.keys():
+        if key == 'avatar':
+            if request.files.get("image", False):
+                image = request.files['image']
+                print('image', image)
+                path = os.path.join(app.root_path, 'images', image.filename)
+                image.save(path)
+                data['image'] = image.filename
         document[key] = data[key]
     collection_db.update_one({'_id': user}, {'$set': document})
+
 
 # send image
 @app.route('/image/<image_name>', methods=['GET'])
@@ -180,19 +191,23 @@ def send_image(image_name):
     image_path = os.path.join(app.root_path, 'images', image_name)
     return send_file(image_path, as_attachment=True)
 
+
 msgs = []
+
 
 @socketio.on('connected')
 def handle_connected(data):
-    print('connect data user',data)
+    print('connect data user', data)
     join_room(data['room'])  # присоединяем пользователя к комнате с уникальным идентификатором
+
 
 @socketio.on('message')
 def handle_message(data):
-    # db.messages.insert_one(data)  # сохраняем сообщение в MongoDB
-    print('get message',data)
+    add_to_database(data, 'messages')  # сохраняем сообщение в MongoDB
+    print('get message', data)
     msgs.append(data)
     emit('message', data, room=data['room'])  # отправляем сообщение только тем, кто в этой комнате
+
 
 # start program
 if __name__ == '__main__':
