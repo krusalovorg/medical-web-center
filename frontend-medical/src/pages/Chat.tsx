@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useReducer, useRef, useState } from "react";
 import SearchInput from "../components/SearchInput";
 import UserMessage from "../components/UserMessage";
 import Plus from "../icons/Plus";
@@ -17,6 +17,8 @@ function Chat() {
     const [doctorsSearch, setDoctorsSearch] = useState<UserData[]>([]);
     const [renderDoctors, setRenderDoctors] = useState();
 
+    const ref = useRef(null);
+
     const [allChats, setAllChats] = useState<any[]>([]);
 
     const [open, setOpen] = useState(false);
@@ -24,6 +26,7 @@ function Chat() {
     const [callOpen, setCallOpen] = useState(false);
 
     const [selectCreateChatUser, setSelectCreateChatUser] = useState<any>(0);
+    const [selectCreateChatUserData, setSelectCreateChatUserData] = useState<any>({});
 
     const [selectedUserChat, setSelectedUserChat] = useState<UserData>({} as any);
 
@@ -35,6 +38,8 @@ function Chat() {
     const userData = useContext(UserContext);
 
     const [selectId, setSelectId] = useState<any>();
+
+    const [allDoctors, setAllDoctors] = useState<UserData[]>([]);
 
     async function loadUser() {
         const token = getCookieToken();
@@ -49,9 +54,10 @@ function Chat() {
         //loadUser();
     }, [selectId])
 
+
     useEffect(() => {
         const socket = io(ENDPOINT);
-
+        console.log('CREATE NEW CONNECTION', selectId, userData?._id)
         socket.emit('connected', { room: selectId, user_id: userData._id });
 
         socket.on('connected', (data) => {
@@ -71,9 +77,9 @@ function Chat() {
             }
         });
 
-        socket.on('typing', (typing) => {
-            // обработка события typing
-        });
+        // socket.on('typing', (typing) => {
+        //     // обработка события typing
+        // });
 
         return () => {
             socket.disconnect();
@@ -83,11 +89,25 @@ function Chat() {
     const sendMessage = () => {
         if (text.length > 0) {
             const socket = io(ENDPOINT);
+            console.log('send data::::', selectId, userData?._id, { room: selectId, text: text, user_id: userData._id })
             socket.emit('message', { room: selectId, text: text, user_id: userData._id });
             setText("");  // Очистить поле ввода после отправки
         }
+        scrollBottom()
     };
 
+    const clearChat = () => {
+        const socket = io(ENDPOINT);
+        console.log('usrsS::::', selectId, userData?._id)
+        socket.emit('message', { room: selectId, text: text, user_id: userData._id, clear: true });
+        setText("");  // Очистить поле ввода после отправки
+    };
+
+    function scrollBottom() {
+        if (ref.current) {
+            (ref.current as any)?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
+        }
+    }
 
     async function load() {
         if (searchText.length > 0) {
@@ -104,12 +124,11 @@ function Chat() {
         setAllChats(res);
         if (res.length > 0 && !selectId) {
             setSelectId(res[0]?._id)
-        } else if (!selectId){
+        } else if (!selectId) {
             setSelectId(userData?._id)
             setSelectedUserChat(userData)
         }
     }
-
 
     useEffect(() => {
         load()
@@ -117,12 +136,27 @@ function Chat() {
 
     useEffect(() => {
         loadChats();
-    }, [])
+
+        if (ref.current) {
+            (ref.current as any)?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
+        }
+    }, [selectId, selectedUserChat])
+
+    async function loadDoctorsAll() {
+        if (open) {
+            setAllDoctors(await getDoctors(""));
+        } else {
+            setAllDoctors([])
+        }
+    }
+
+    useEffect(() => {
+        loadDoctorsAll()
+    }, [open])
 
     useEffect(() => {
         loadChats();
-    }, [selectId, selectedUserChat])
-
+    }, [])
     return (
         <>
             <Modal
@@ -133,11 +167,12 @@ function Chat() {
                     <SearchInput onChange={setSearchText} />
 
                     <div className="h-[500px] mt-5">
-                        {(doctorsSearch?.length > 0 || searchText) &&
+                        {
                             <>
-                                {doctorsSearch?.length > 0 && doctorsSearch.map((item, index: number) =>
+                                {(doctorsSearch?.length > 0 ? doctorsSearch : allDoctors).map((item, index: number) =>
                                     <UserMessage
                                         setId={setSelectCreateChatUser}
+                                        setData={setSelectCreateChatUserData}
                                         data={{
                                             select: selectCreateChatUser == item?._id,
                                             id: item?._id,
@@ -151,6 +186,8 @@ function Chat() {
                             onClick={() => {
                                 setOpen(false)
                                 setSelectId(selectCreateChatUser)
+                                setSelectedUserChat(selectCreateChatUserData)
+                                console.log(selectCreateChatUserData)
                             }}
                             className="outline-none border-none w-full h-[68px] bg-[#0067E3] text-white text-xl rounded-xl">
                             Выбрать
@@ -159,8 +196,8 @@ function Chat() {
                     }
                 </div>
             </Modal>
-            <CallModal open={callOpen} setOpen={setCallOpen} selectUserData={selectedUserChat}/>
-            <div className="w-full h-full flex flex-row justify-between align-top">
+            <CallModal open={callOpen} setOpen={setCallOpen} selectUserData={selectedUserChat} />
+            <div className="w-full h-full flex flex-row justify-between align-top overflow-y-hidden">
                 <div className="h-full max-w-[550px] bg-white">
                     <div className="bg-white h-[130px] flex justify-center items-center px-4 pt-[30px] relative">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -183,13 +220,17 @@ function Chat() {
                     <div className="bg-[#F7F8FD] h-full px-4 gap-3">
                         {allChats?.length > 0 && allChats.map((item, index: number) => {
                             const newestObject = item?.messages.reduce((max: any, obj: any) => (obj.date > max.date ? obj : max), item?.messages[0]);
+                            let id_room = item?.users?.find((x: any) => x !== userData?._id);
+                            if (item?.users[0] == item?.users[1]) {
+                                id_room = item?.users[0]
+                            }
                             return <UserMessage
                                 setId={setSelectId}
                                 setData={setSelectedUserChat}
 
                                 data={{
-                                    select: selectId == item?._id,
-                                    id: item?._id,
+                                    select: selectId == id_room,
+                                    id: id_room,
                                     text: newestObject?.text,
                                     date: moment(newestObject?.date).format("HH:mm"),
                                     ...item.companion
@@ -229,18 +270,27 @@ function Chat() {
                                 </h1>
                                 <h2 className={`text-black ml-auto font-[Montserrat]`}>{onlineUser ? "в сети" : "не в сети"}</h2>
                             </div>
-                            <div
-                                onClick={() => setCallOpen(true)}
-                                className="ml-auto mr-5 cursor-pointer">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M20.6633 18.771C20.6633 18.771 19.5047 19.909 19.2207 20.2426C18.7582 20.7362 18.2132 20.9693 17.4988 20.9693C17.4301 20.9693 17.3568 20.9693 17.2881 20.9647C15.9279 20.8779 14.6639 20.3477 13.7159 19.8953C11.1238 18.643 8.84771 16.8651 6.95629 14.6119C5.39461 12.7335 4.35044 10.9968 3.65891 9.13211C3.233 7.99409 3.07729 7.10744 3.14598 6.27107C3.19178 5.73634 3.39787 5.29302 3.77798 4.91368L5.33966 3.35519C5.56406 3.14496 5.80221 3.0307 6.03577 3.0307C6.32429 3.0307 6.55786 3.20437 6.70441 3.35062C6.70899 3.35519 6.71357 3.35977 6.71815 3.36434C6.99751 3.62485 7.26313 3.8945 7.54249 4.18243C7.68446 4.32868 7.83101 4.47493 7.97756 4.62575L9.22782 5.87345C9.71327 6.35791 9.71327 6.8058 9.22782 7.29026C9.09501 7.4228 8.96678 7.55534 8.83397 7.68331C8.44927 8.07636 8.75147 7.77477 8.35304 8.13126C8.34388 8.1404 8.33472 8.14497 8.33014 8.15411C7.93629 8.54716 8.00956 8.93107 8.092 9.19158C8.09658 9.20529 8.10116 9.219 8.10573 9.23271C8.43089 10.0188 8.88886 10.7592 9.58498 11.6413L9.58956 11.6459C10.8536 13.1998 12.1862 14.4109 13.6563 15.3387C13.8441 15.4575 14.0364 15.5535 14.2196 15.6449C14.3845 15.7272 14.5402 15.8049 14.673 15.8871C14.6913 15.8963 14.7097 15.91 14.728 15.9191C14.8837 15.9968 15.0302 16.0334 15.1814 16.0334C15.5615 16.0334 15.7996 15.7957 15.8775 15.718L16.7752 14.8222C16.9309 14.6668 17.1782 14.4794 17.4667 14.4794C17.7506 14.4794 17.9842 14.6576 18.1262 14.813C18.1308 14.8176 18.1308 14.8176 18.1353 14.8222L20.6587 17.3404C21.1305 17.8066 20.6633 18.771 20.6633 18.771Z" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                            </div>
+                            {selectedUserChat.avatar == "gpt.jpg" ? <></> :
+                                <div
+                                    onClick={() => setCallOpen(true)}
+                                    className="ml-auto mr-5 cursor-pointer">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M20.6633 18.771C20.6633 18.771 19.5047 19.909 19.2207 20.2426C18.7582 20.7362 18.2132 20.9693 17.4988 20.9693C17.4301 20.9693 17.3568 20.9693 17.2881 20.9647C15.9279 20.8779 14.6639 20.3477 13.7159 19.8953C11.1238 18.643 8.84771 16.8651 6.95629 14.6119C5.39461 12.7335 4.35044 10.9968 3.65891 9.13211C3.233 7.99409 3.07729 7.10744 3.14598 6.27107C3.19178 5.73634 3.39787 5.29302 3.77798 4.91368L5.33966 3.35519C5.56406 3.14496 5.80221 3.0307 6.03577 3.0307C6.32429 3.0307 6.55786 3.20437 6.70441 3.35062C6.70899 3.35519 6.71357 3.35977 6.71815 3.36434C6.99751 3.62485 7.26313 3.8945 7.54249 4.18243C7.68446 4.32868 7.83101 4.47493 7.97756 4.62575L9.22782 5.87345C9.71327 6.35791 9.71327 6.8058 9.22782 7.29026C9.09501 7.4228 8.96678 7.55534 8.83397 7.68331C8.44927 8.07636 8.75147 7.77477 8.35304 8.13126C8.34388 8.1404 8.33472 8.14497 8.33014 8.15411C7.93629 8.54716 8.00956 8.93107 8.092 9.19158C8.09658 9.20529 8.10116 9.219 8.10573 9.23271C8.43089 10.0188 8.88886 10.7592 9.58498 11.6413L9.58956 11.6459C10.8536 13.1998 12.1862 14.4109 13.6563 15.3387C13.8441 15.4575 14.0364 15.5535 14.2196 15.6449C14.3845 15.7272 14.5402 15.8049 14.673 15.8871C14.6913 15.8963 14.7097 15.91 14.728 15.9191C14.8837 15.9968 15.0302 16.0334 15.1814 16.0334C15.5615 16.0334 15.7996 15.7957 15.8775 15.718L16.7752 14.8222C16.9309 14.6668 17.1782 14.4794 17.4667 14.4794C17.7506 14.4794 17.9842 14.6576 18.1262 14.813C18.1308 14.8176 18.1308 14.8176 18.1353 14.8222L20.6587 17.3404C21.1305 17.8066 20.6633 18.771 20.6633 18.771Z" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </div>
+                            }
                         </div>
-                        <div className="w-full h-full overflow-scroll overflow-x-hidden px-5 flex gap-4 flex-col" style={{
+                        <div ref={ref} className="w-full h-full overflow-scroll overflow-x-hidden px-5 flex gap-4 flex-col" style={{
                             height: "calc(100% - 200px)"
                         }}>
                             <div className="h-5" />
+                            {
+                                selectedUserChat.avatar == "gpt.jpg" ?
+                                    <h1 className="text-black mx-auto font-[Montserrat]">
+                                        Внимание! Диагнозы от нейросети могут быть не точными, пожалуйста погуглите прежде чем действовать по советам.
+                                    </h1>
+                                    : <></>
+                            }
                             {/* <div className="max-w-[70%] w-fit bg-white shadow-md rounded-2xl p-7">
                                 Добрый день Егор, как себя чувствуете?
                             </div>
@@ -272,6 +322,16 @@ function Chat() {
                                     Отправить
                                     <svg className="ml-2" width="26" height="24" viewBox="0 0 26 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M24.3124 12L11.673 12M6.34676 16.1693H3.91245M6.34676 12.1464H1.51245M6.34676 8.12356H3.91245M10.6198 4.59596L23.8752 11.0228C24.6915 11.4186 24.6915 12.5814 23.8752 12.9772L10.6198 19.4041C9.71176 19.8443 8.74657 18.9161 9.15107 17.9915L11.5819 12.4353C11.7033 12.1578 11.7033 11.8422 11.5819 11.5647L9.15107 6.00848C8.74657 5.08391 9.71176 4.15568 10.6198 4.59596Z" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                                    </svg>
+                                </div>
+                            }
+                            {selectedUserChat.avatar == "gpt.jpg" &&
+                                <div
+                                    onClick={() => clearChat()}
+                                    className="bg-[#0067E2] ml-2 cursor-pointer rounded-xl w-[200px] h-[40px] text-white font-[Montserrat] font-semibold flex justify-center items-center">
+                                    Очистить
+                                    <svg className="ml-2" width="25" height="24" viewBox="0 0 25 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M19.9283 21.3413H7.49862L2.97873 16.8214C2.76828 16.6097 2.65015 16.3233 2.65015 16.0248C2.65015 15.7263 2.76828 15.4399 2.97873 15.2282L14.2784 3.92844C14.4902 3.71798 14.7766 3.59985 15.0751 3.59985C15.3736 3.59985 15.66 3.71798 15.8717 3.92844L21.5216 9.5783C21.732 9.79001 21.8501 10.0764 21.8501 10.3749C21.8501 10.6735 21.732 10.9598 21.5216 11.1716L17.6501 15.043M11.3518 21.3413L17.6501 15.043M10.1619 8.04496L17.6501 15.043" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                     </svg>
                                 </div>
                             }

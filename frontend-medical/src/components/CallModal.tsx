@@ -163,7 +163,7 @@ function CallModal({ open, setOpen, selectUserData }: { open: boolean, setOpen: 
     return (
         <>
             <div className="w-full h-full fixed left-0 top-0 z-[100]">
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[80%] min-h-[80%] bg-[#efefef] rounded-2xl p-5 z-[101]">
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 aspect-auto w-[80%] min-h-[80%] bg-[#efefef] rounded-2xl p-5 z-[101]">
                     <div className="w-full h-[60px] flex flex-row justify-between items-center min-w-[500px]">
                         <h1 className={`text-xl text-black font-bold font-[Montserrat]`}>
                             Видеозвонок
@@ -173,11 +173,11 @@ function CallModal({ open, setOpen, selectUserData }: { open: boolean, setOpen: 
                         </svg>
                     </div>
                     <div className="flex flex-row gap-12 w-full">
-                        <div className="w-[48%] h-full">
-                            <video autoPlay muted playsInline ref={localVideoRef} />
+                        <div className="w-[48%] h-full bg-grey aspect-auto">
+                            {/* <video autoPlay muted playsInline ref={localVideoRef} /> */}
                         </div>
-                        <div className="w-[48%] h-full">
-                            <video autoPlay muted playsInline ref={remoteVideoRef} />
+                        <div className="w-[48%] h-full aspect-auto">
+                            {/* <video autoPlay muted playsInline ref={remoteVideoRef} /> */}
                         </div>
                     </div>
                 </div>

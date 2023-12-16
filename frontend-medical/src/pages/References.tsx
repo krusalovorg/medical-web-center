@@ -115,7 +115,7 @@ function References() {
 
     useEffect(() => {
         load()
-    }, [])
+    }, [References])
 
     return (
         <>
