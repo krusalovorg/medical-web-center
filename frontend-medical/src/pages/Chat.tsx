@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import SearchInput from "../components/SearchInput";
 import UserMessage from "../components/UserMessage";
 import Plus from "../icons/Plus";
-import { UserData, getDoctors } from "../utils/backend";
+import { UserData, getDoctors, getImage } from "../utils/backend";
 import socketIOClient from 'socket.io-client';
 import Modal from "../components/Modal";
 
@@ -17,10 +17,20 @@ function Chat() {
     const [open, setOpen] = useState(false);
     const [selectCreateChatUser, setSelectCreateChatUser] = useState<any>(0);
 
+    const [selectedUserChat, setSelectedUserChat] = useState<UserData>({} as any);
+
     const [room, setRoom] = useState("general");  // Идентификатор комнаты
 
     const [text, setText] = useState<string>("");
     const [messages, setMessages] = useState<any>([]);
+
+    async function loadUser() {
+
+    }
+
+    useEffect(()=>{
+        loadUser();
+    },[selectId])
 
     useEffect(() => {
         const socket = socketIOClient(ENDPOINT);
@@ -81,7 +91,10 @@ function Chat() {
                     </div>
                     {selectCreateChatUser ?
                         <button
-                            onClick={() => setOpen(false)}
+                            onClick={() => {
+                                setOpen(false)
+                                setSelectId(selectCreateChatUser)
+                            }}
                             className="outline-none border-none w-full h-[68px] bg-[#0067E3] text-white text-xl rounded-xl">
                             Выбрать
                         </button>
@@ -140,7 +153,7 @@ function Chat() {
                     <div className="w-[90%] h-[90%] bg-[#F5FAFD] rounded-3xl relative">
                         <div className="w-full bg-white h-[80px] rounded-t-3xl flex flex-row items-center px-5">
                             <img
-                                src="https://sun9-4.userapi.com/impg/TKkFV1S0TTKWi9-d49YO8q_ZMVlaliEETAZctQ/wSce4SocHD0.jpg?size=512x683&quality=95&sign=31012baaf0d0f6039c37d205054a34ad&type=album"
+                                src={getImage(selectedUserChat?.avatar)}
                                 className={`min-w-[56px] h-[56px] rounded-full`}
                             />
                             <div className="ml-5 gap-2">

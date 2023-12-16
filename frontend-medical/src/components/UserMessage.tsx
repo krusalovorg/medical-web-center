@@ -1,4 +1,4 @@
-import { UserData } from "../utils/backend";
+import { UserData, getImage } from "../utils/backend";
 
 function UserMessage({ data, setId }: { data: UserData | any, setId?: any }) {
     const select = data?.select;
@@ -12,7 +12,7 @@ function UserMessage({ data, setId }: { data: UserData | any, setId?: any }) {
                 }}
                 className={`w-full p-5 rounded-3xl flex flex-row items-start mb-2 ${select ? 'bg-[#0067E3]' : ''} cursor-pointer`}>
                 <img
-                    src="https://sun9-4.userapi.com/impg/TKkFV1S0TTKWi9-d49YO8q_ZMVlaliEETAZctQ/wSce4SocHD0.jpg?size=512x683&quality=95&sign=31012baaf0d0f6039c37d205054a34ad&type=album"
+                    src={getImage(data?.avatar)}
                     className={`min-w-[56px] h-[56px] rounded-full ${select && 'border-white border-2'}`}
                 />
                 <div className="pl-4" style={{

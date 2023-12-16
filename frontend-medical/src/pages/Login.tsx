@@ -45,9 +45,11 @@ function Login({ reg }: any) {
             .then(data => {
                 // Сохраняем токен в куки
                 if (data.access_token) {
+                    console.log("SET", data)
                     document.cookie = `access_token = ${data.access_token}`;
                     console.log("GET DATA",data)
                     setToken(data.access_token);
+                    return
                     window.location.reload();    
                 } else {
                     setError("Неверный логин или пароль");

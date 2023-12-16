@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import SearchInput from "../components/SearchInput";
 import UserMessage from "../components/UserMessage";
 import Plus from "../icons/Plus";
-import { UserData, getDoctors } from "../utils/backend";
+import { UserData, getDoctors, getImage, getUserData } from "../utils/backend";
 import Input from "../components/Input";
 import UserContext from "../contexts/UserContext";
 
@@ -92,7 +92,7 @@ function Profile() {
                                 <img
                                     src={
                                         (file && newFileAsImage) ? newFileAsImage :
-                                            "https://sun9-4.userapi.com/impg/TKkFV1S0TTKWi9-d49YO8q_ZMVlaliEETAZctQ/wSce4SocHD0.jpg?size=512x683&quality=95&sign=31012baaf0d0f6039c37d205054a34ad&type=album"
+                                            getImage(userData?.avatar)
                                     }
                                     className={`min-w-[160px] h-[160px] rounded-md`}
                                     style={{

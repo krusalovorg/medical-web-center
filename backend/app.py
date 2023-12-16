@@ -159,6 +159,8 @@ def show_doctor():
 def get_user():
     user = collection_db.find_one({"email": get_jwt_identity()})
     user['_id'] = str(user['_id'])
+    del user['password']
+    print('user',user, get_jwt_identity())
     return jsonify(user)
 
 

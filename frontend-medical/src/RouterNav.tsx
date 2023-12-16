@@ -33,7 +33,7 @@ function RouterNav() {
         <>
             <BrowserRouter>
                 {
-                    isLoggedIn ? <>
+                    (isLoggedIn && token) ? <>
                         <User.Provider value={(userData || {}) as UserData}>
                             <Header />
                             <VerticalHeader>
