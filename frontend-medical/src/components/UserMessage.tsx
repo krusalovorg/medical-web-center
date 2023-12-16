@@ -13,7 +13,7 @@ function UserMessage({ data, setId, setData }: { data: UserData | any, setId?: a
                         setData(data);
                     }
                 }}
-                className={`w-full p-5 rounded-3xl flex flex-row items-start mb-2 ${select ? 'bg-[#0067E3]' : ''} cursor-pointer`}>
+                className={`w-full p-5 rounded-3xl flex flex-row items-start mb-2 ${select ? 'bg-[#0067E3]' : ''} cursor-pointer min-w-[410px]`}>
                 <img
                     src={getImage(data?.avatar)}
                     className={`min-w-[56px] w-[56px] h-[56px] rounded-full ${select && 'border-white border-2'}`}
@@ -23,7 +23,7 @@ function UserMessage({ data, setId, setData }: { data: UserData | any, setId?: a
                 }}>
                     <div className="w-full flex flex-row items-end">
                         <h1 className={`text-xl ${select ? "text-white" : "text-black"} font-[Montserrat]`}>
-                            {data?.surname} {data?.name} {data?.patronymic}
+                            {data?.surname} {data?.name}
                         </h1>
                         <h2 className={`${select ? "text-white" : "text-black"} ml-auto font-[Montserrat]`}>{data?.date}</h2>
                         {data?.new_message && !select &&
@@ -32,7 +32,7 @@ function UserMessage({ data, setId, setData }: { data: UserData | any, setId?: a
                             </div>}
                     </div>
                     {data?.text ?
-                        <h2 className={`text-lg ${select ? "text-white" : "text-black"} font-[Montserrat] four_text mt-2 h-[116px]`}>
+                        <h2 className={`text-lg ${select ? "text-white" : "text-black"} font-[Montserrat] four_text mt-2 h-[25px]`}>
                             {data?.text}
                         </h2>
                         :

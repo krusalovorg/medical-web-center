@@ -1,3 +1,6 @@
+import time
+
+from bson import ObjectId
 from flask import Flask, request, jsonify, send_file
 from pymongo import MongoClient
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
@@ -250,8 +253,17 @@ def show_mess():
 @jwt_required()
 def show_chat():
     result = []
-    messages = reference_db.find({'user_id': get_user()})
+    user = collection_db.find_one({"email": get_jwt_identity()})
+    messages = message_db.find({'users': {"$all":[str(user.get("_id"))]}})
     for document in messages:
+        document["_id"] = str(document["_id"])
+        ids = next(x for x in document["users"] if x != user.get("_id"))
+        companion = collection_db.find_one({"_id": ObjectId(ids)})
+        if companion:
+            del companion['password']
+            companion["_id"] = str(companion["_id"])
+        print('cpmaneirnesrsefsefsefs',companion, ids)
+        document['companion'] = companion
         result.append(document)
     return jsonify(result)
 
@@ -265,7 +277,13 @@ def handle_connected(data):
     data['user_id'] = str(data.get('user_id'))
     join_room(data.get('room'))  # присоединяем пользователя к комнате с уникальным идентификатором
 
-    message_send = message_db.find_one({"users": {"$all": [data.get('room'), data.get("user_id")]}})
+    id_room = data.get('room')
+    user_id = data.get('user_id')
+
+    if id_room == None or user_id == None:
+        return
+
+    message_send = message_db.find_one({"users": {"$all": [id_room, user_id]}})
     print('message send', message_send)
     if message_send:
         message_send['_id'] = str(message_send['_id'])
@@ -276,10 +294,9 @@ def handle_connected(data):
 
     emit('online', {"online": True, "user_id": str(data.get('user_id'))},
          room=online_users.get(request.sid).get('room'))
-    print('findeddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd', message_send)
     if not message_send:
         print('try create')
-        add_to_database({'users': [data.get('user_id'), data.get('room')], 'messages': []}, 'messages')
+        add_to_database({'users': [id_room, user_id], 'messages': []}, 'messages')
 
 
 @socketio.on('disconnect')
@@ -299,6 +316,7 @@ def handle_message(data):
     print('get message', data)
     emit('message', data, room=data.get('room'))  # отправляем сообщение только тем, кто в этой комнате
     data['user_id'] = str(data.get('user_id'))
+    data['date'] = time.time()
     print(data.get('user_id'), )
     get_message = message_db.find_one({"users": {"$all": [data.get('room'), data.get("user_id")]}})
     print('get mdgs', get_message)
@@ -314,7 +332,6 @@ def handle_message(data):
 def join(data):
     room = data.get('room')
     join_room(room)
-    online_users[request.sid] = {"_id": data.get('user_id'), "room": room}
     emit('video', {"online": True, "user_id": str(data.get('user_id'))}, to=room, skip_sid=request.sid)
 
 

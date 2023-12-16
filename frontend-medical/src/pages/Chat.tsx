@@ -7,16 +7,16 @@ import socketIOClient from 'socket.io-client';
 import Modal from "../components/Modal";
 import { io } from "socket.io-client";
 import UserContext from "../contexts/UserContext";
+import moment from "moment";
 
 const ENDPOINT = "http://127.0.0.1:5000";
 
 function Chat() {
-    const [selectId, setSelectId] = useState<any>();
     const [searchText, setSearchText] = useState('');
     const [doctorsSearch, setDoctorsSearch] = useState<UserData[]>([]);
     const [renderDoctors, setRenderDoctors] = useState();
 
-    const [allChats, setAllChats] = useState<UserData[]>([]);
+    const [allChats, setAllChats] = useState<any[]>([]);
 
     const [open, setOpen] = useState(false);
     const [selectCreateChatUser, setSelectCreateChatUser] = useState<any>(0);
@@ -29,6 +29,8 @@ function Chat() {
     const [onlineUser, setOnlineUser] = useState(false);
 
     const userData = useContext(UserContext);
+
+    const [selectId, setSelectId] = useState<any>();
 
     async function loadUser() {
         const token = getCookieToken();
@@ -94,7 +96,7 @@ function Chat() {
 
     async function loadChats() {
         const res = await getChats();
-        console.log('res',res)
+        console.log('res', res)
         setAllChats(res);
     }
 
@@ -106,6 +108,15 @@ function Chat() {
     useEffect(() => {
         loadChats();
     }, [])
+
+    useEffect(() => {
+        loadChats();
+    }, [selectId, selectedUserChat])
+
+    useEffect(()=>{
+        setSelectId(userData?._id)
+        setSelectedUserChat(userData)
+    },[])
 
     return (
         <>
@@ -164,31 +175,37 @@ function Chat() {
                     </div>
 
                     <div className="bg-[#F7F8FD] h-full px-4 gap-3">
-                        {allChats?.length > 0 && allChats.map((item, index: number) =>
-                            <UserMessage
+                        {allChats?.length > 0 && allChats.map((item, index: number) => {
+                            const newestObject = item?.messages.reduce((max: any, obj: any) => (obj.date > max.date ? obj : max), item?.messages[0]);
+                            return <UserMessage
                                 setId={setSelectId}
                                 setData={setSelectedUserChat}
 
                                 data={{
                                     select: selectId == item?._id,
                                     id: item?._id,
-                                    text: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-                                    ...item
-                                }} />)}
+                                    text: newestObject?.text,
+                                    date: moment(newestObject?.date).format("HH:mm"),
+                                    ...item.companion
+                                }} />
+                        }
+                        )}
                         {(doctorsSearch?.length > 0 || searchText) && !open &&
                             <>
                                 <h1 className={`text-lg text-black font-[Montserrat] mb-2 px-2 py-4 border-b-2 border-b-[#E8E9EA]`}>
                                     Найдено результатов: {doctorsSearch?.length}
                                 </h1>
-                                {doctorsSearch?.length > 0 && doctorsSearch.map((item, index: number) =>
-                                    <UserMessage
+                                {doctorsSearch?.length > 0 && doctorsSearch.map((item: any, index: number) => {
+                                    return <UserMessage
                                         setId={setSelectId}
                                         setData={setSelectedUserChat}
                                         data={{
                                             select: selectId == item?._id,
                                             id: item?._id,
-                                            ...item
-                                        }} />)}
+                                            ...item,
+                                        }} />
+                                })
+                                }
                             </>
                         }
                     </div>
@@ -211,12 +228,12 @@ function Chat() {
                             height: "calc(100% - 200px)"
                         }}>
                             <div className="h-5" />
-                            <div className="max-w-[70%] w-fit bg-white shadow-md rounded-2xl p-7">
+                            {/* <div className="max-w-[70%] w-fit bg-white shadow-md rounded-2xl p-7">
                                 Добрый день Егор, как себя чувствуете?
                             </div>
                             <div className="max-w-[70%] w-fit bg-white shadow-md rounded-2xl p-7 ml-auto">
                                 Отлично ПРЕКРАСНо спасибо !
-                            </div>
+                            </div> */}
                             {
                                 messages && messages.length > 0 && messages.map((item: any) => {
                                     //console.log(item)
@@ -235,14 +252,16 @@ function Chat() {
                                 value={text}
                                 onChange={(e) => setText(e.target.value)}
                             />
-                            <div
-                                onClick={() => sendMessage()}
-                                className="bg-[#0067E2] cursor-pointer rounded-xl w-[200px] h-[40px] text-white font-[Montserrat] font-semibold flex justify-center items-center">
-                                Отправить
-                                <svg className="ml-2" width="26" height="24" viewBox="0 0 26 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M24.3124 12L11.673 12M6.34676 16.1693H3.91245M6.34676 12.1464H1.51245M6.34676 8.12356H3.91245M10.6198 4.59596L23.8752 11.0228C24.6915 11.4186 24.6915 12.5814 23.8752 12.9772L10.6198 19.4041C9.71176 19.8443 8.74657 18.9161 9.15107 17.9915L11.5819 12.4353C11.7033 12.1578 11.7033 11.8422 11.5819 11.5647L9.15107 6.00848C8.74657 5.08391 9.71176 4.15568 10.6198 4.59596Z" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                                </svg>
-                            </div>
+                            {selectId &&
+                                <div
+                                    onClick={() => sendMessage()}
+                                    className="bg-[#0067E2] cursor-pointer rounded-xl w-[200px] h-[40px] text-white font-[Montserrat] font-semibold flex justify-center items-center">
+                                    Отправить
+                                    <svg className="ml-2" width="26" height="24" viewBox="0 0 26 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M24.3124 12L11.673 12M6.34676 16.1693H3.91245M6.34676 12.1464H1.51245M6.34676 8.12356H3.91245M10.6198 4.59596L23.8752 11.0228C24.6915 11.4186 24.6915 12.5814 23.8752 12.9772L10.6198 19.4041C9.71176 19.8443 8.74657 18.9161 9.15107 17.9915L11.5819 12.4353C11.7033 12.1578 11.7033 11.8422 11.5819 11.5647L9.15107 6.00848C8.74657 5.08391 9.71176 4.15568 10.6198 4.59596Z" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                                    </svg>
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
