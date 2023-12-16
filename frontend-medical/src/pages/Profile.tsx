@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import SearchInput from "../components/SearchInput";
 import UserMessage from "../components/UserMessage";
 import Plus from "../icons/Plus";
-import { UserData, getDoctors, getImage, getUserData } from "../utils/backend";
+import { URL_SERVER, UserData, getCookieToken, getDoctors, getImage, getUserData } from "../utils/backend";
 import Input from "../components/Input";
 import UserContext from "../contexts/UserContext";
 
@@ -14,12 +14,24 @@ function Profile() {
     const [city, setCity] = useState('');
 
     const [position, setPosition] = useState('');
-    const [workPosition, setWorkPosition] = useState('');
+    const [expirience, setexpirience] = useState('');
     const [lernPosition, setLernPosition] = useState('');
 
     const [imDoctor, setImDoctor] = useState(true);
 
     const [email, setEmail] = useState('');
+
+    const [errors, setErrors] = useState({
+        name: '',
+        surname: '',
+        patronymic: '',
+        city: '',
+        position: '',
+        expirience: '',
+        lernPosition: ''
+    });
+
+    const [submited, setSubmited] = useState(false);
 
     const [isHovered, setIsHovered] = useState(false);
 
@@ -48,6 +60,60 @@ function Profile() {
         }
     };
 
+    const checkErrors = (submited_local?: boolean) => {
+        const fields = { name, surname, patronymic, position, expirience, lernPosition };
+        const doctor = ["position", "expirience", "lernPosition"]
+        let error = false;
+        let errors_res = errors;
+        for (const field in fields) {
+            const value = (fields as any)[field];
+            if (value?.length === 0) {
+                console.log('Field', field, 'is empty');
+                if (submited || submited_local) {
+                    errors_res = { ...errors_res, [field]: "Поле не заполнено" }
+                }
+                error = true;
+            } else {
+                errors_res = { ...errors_res, [field]: "" }
+            }
+        }
+        setErrors(errors_res)
+        return error;
+    };
+
+    useEffect(() => {
+        checkErrors();
+    }, [name, surname, patronymic, city, position, expirience, lernPosition])
+
+    async function updateUserData() {
+        setSubmited(true);
+        const errors = checkErrors(true);
+        if (!errors) {
+            const fields = { name, surname, patronymic, city, position, expirience, lernPosition };
+            const userData = new FormData();
+            for (const field in fields) {
+                const value = (fields as any)[field];
+                if (value != (userData as any)[field]) {
+                    userData.append(field, value);
+                }
+            }
+
+            fetch(URL_SERVER + '/update_user', {
+                method: 'POST',
+                headers: {
+                    Authorization: "Bearer " + getCookieToken(),
+                },
+                body: userData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('User updated successfully:', data);
+                })
+                .catch(error => {
+                    console.error('Error updating user:', error);
+                });
+        }
+    }
 
     useEffect(() => {
         if (userData) {
@@ -106,6 +172,7 @@ function Profile() {
                                 placeholder="Иван"
                                 title="Имя"
                                 value={name}
+                                error={errors?.name}
                                 setValue={setName}
                             />
                             <Input
@@ -113,6 +180,7 @@ function Profile() {
                                 placeholder="Иванов"
                                 title="Фамилия"
                                 value={surname}
+                                error={errors?.surname}
                                 setValue={setSurname}
                             />
                             <Input
@@ -120,6 +188,7 @@ function Profile() {
                                 placeholder="Иванов"
                                 title="Отчество"
                                 value={patronymic}
+                                error={errors?.patronymic}
                                 setValue={setPatronymic}
                             />
 
@@ -127,8 +196,9 @@ function Profile() {
                                 type="email"
                                 placeholder="email@example.com"
                                 title="Почта"
-                                value={patronymic}
-                                setValue={setPatronymic}
+                                value={email}
+                                disabled
+                                setValue={setEmail}
                             />
 
                             {imDoctor && <Input
@@ -136,10 +206,13 @@ function Profile() {
                                 placeholder="Хирург"
                                 title="Должность"
                                 value={position}
+                                error={errors?.position}
                                 setValue={setPosition}
                             />}
 
-                            <div className="px-12 py-4 bg-[#0067E3] rounded-xl text-md font-[Montserrat] text-white flex justify-center items-center w-fit">
+                            <div
+                                onClick={updateUserData}
+                                className="px-12 py-4 bg-[#0067E3] rounded-xl text-md cursor-pointer font-[Montserrat] text-white flex justify-center items-center w-fit">
                                 Сохранить
                             </div>
                         </div>
@@ -149,6 +222,7 @@ function Profile() {
                                 placeholder="Тольятти"
                                 title="Город"
                                 value={city}
+                                error={errors?.city}
                                 setValue={setCity}
                             />
                             {imDoctor && <>
@@ -156,14 +230,16 @@ function Profile() {
                                     type="text"
                                     placeholder="Больница номер 1 города Тольятти"
                                     title="Место работы"
-                                    value={workPosition}
-                                    setValue={setWorkPosition}
+                                    value={expirience}
+                                    error={errors?.expirience}
+                                    setValue={setexpirience}
                                 />
                                 <Input
                                     type="text"
                                     placeholder="Первый Московский государственный медицинский университет имени И.М. Сеченова"
                                     title="Место обучения"
                                     value={lernPosition}
+                                    error={errors?.lernPosition}
                                     setValue={setLernPosition}
                                 />
                             </>}

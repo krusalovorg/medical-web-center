@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import SearchInput from "../components/SearchInput";
 import UserMessage from "../components/UserMessage";
 import Plus from "../icons/Plus";
-import { UserData, getDoctors, getImage } from "../utils/backend";
+import { UserData, getCookieToken, getDoctors, getImage, getUserData } from "../utils/backend";
 import socketIOClient from 'socket.io-client';
 import Modal from "../components/Modal";
 
@@ -25,7 +25,11 @@ function Chat() {
     const [messages, setMessages] = useState<any>([]);
 
     async function loadUser() {
-
+        const token = getCookieToken();
+        if (token) {
+            const user = await getUserData(token);
+            setSelectedUserChat(user)
+        }
     }
 
     useEffect(()=>{
@@ -158,7 +162,7 @@ function Chat() {
                             />
                             <div className="ml-5 gap-2">
                                 <h1 className={`text-xl text-black font-[Montserrat]`}>
-                                    Дудкин Егор
+                                    {selectedUserChat?.surname} {selectedUserChat?.name}
                                 </h1>
                                 <h2 className={`text-black ml-auto font-[Montserrat]`}>в сети</h2>
                             </div>

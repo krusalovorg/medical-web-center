@@ -6,6 +6,7 @@ import os
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_socketio import SocketIO, emit, join_room, leave_room
+from werkzeug.utils import secure_filename
 
 cluster = MongoClient("mongodb://localhost:27017")
 accounts_db = cluster["accounts"]
@@ -170,20 +171,23 @@ def get_user():
 @app.route('/update_user', methods=['POST'])
 @jwt_required()
 def update_by_id():
-    data = request.get_json()
+    data = request.form
+
     user = get_user()['_id']
     document = collection_db.find_one({'_id': user})
+
     for key in data.keys():
         if key == 'avatar':
-            if request.files.get("image", False):
+            if 'image' in request.files:
                 image = request.files['image']
                 print('image', image)
-                path = os.path.join(app.root_path, 'images', image.filename)
+                path = os.path.join(app.root_path, 'images', secure_filename(image.filename))
                 image.save(path)
-                data['image'] = image.filename
-        document[key] = data[key]
-    collection_db.update_one({'_id': user}, {'$set': document})
+                data['image'] = secure_filename(image.filename)
 
+        document[key] = data[key]
+
+    collection_db.update_one({'_id': user}, {'$set': document})
 
 # send image
 @app.route('/image/<image_name>', methods=['GET'])
