@@ -39,15 +39,19 @@ function Login({ reg }: any) {
                 if (response.status === 200) {
                     return response.json();
                 } else {
-                    throw new Error('Неверный логин или пароль');
+                    setError("Неверный логин или пароль");
                 }
             })
             .then(data => {
                 // Сохраняем токен в куки
-                document.cookie = `access_token = ${data.access_token}`;
-                console.log("GET DATA",data)
-                setToken(data.access_token);
-                window.location.reload();
+                if (data.access_token) {
+                    document.cookie = `access_token = ${data.access_token}`;
+                    console.log("GET DATA",data)
+                    setToken(data.access_token);
+                    window.location.reload();    
+                } else {
+                    setError("Неверный логин или пароль");
+                }
             })
             .catch(error => {
                 setError(error.message);
