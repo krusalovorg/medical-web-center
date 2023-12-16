@@ -312,17 +312,17 @@ def handle_message(data):
 
 @socketio.on('join_video')
 def join(data):
-    room = data['room']
+    room = data.get('room')
     join_room(room)
-    online_users[request.sid] = {"_id": data.get('user_id'), "room": data.get('room')}
-    emit('video', {"online": True, "user_id": str(data.get('user_id'))}, room=online_users.get(request.sid).get('room'))
+    online_users[request.sid] = {"_id": data.get('user_id'), "room": room}
+    emit('video', {"online": True, "user_id": str(data.get('user_id'))}, to=room, skip_sid=request.sid)
 
 
 @socketio.on('get_data')
 def transfer_data(message):
-    username = message['username']
-    room = message['room']
-    data = message['data']
+    username = str(message.get('user_id'))
+    room = message.get('room')
+    data = message.get('data')
     print('DataEvent: {} has sent the data:\n {}\n'.format(username, data))
     emit('data', data, to=room, skip_sid=request.sid)
 
