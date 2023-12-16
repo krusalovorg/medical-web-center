@@ -141,7 +141,7 @@ def show_ref():
             result.append(document)
             document["_id"] = str(document['_id'])
             document['user_id'] = str(document['user_id'])
-        print('resukt',result)
+        print('resukt', result)
         return jsonify(result)
     return []
 
@@ -225,12 +225,24 @@ def show_mess():
     return jsonify(result)
 
 
+@app.route('/show_chats', methods=['POST'])
+@jwt_required()
+def show_chat():
+    data = request.form
+    result = []
+    messages = reference_db.find({'user_id': data.get('user_id')})
+    for document in messages:
+        result.append(document)
+    return jsonify(result)
+
+
 online_users = {}
 
 
 @socketio.on('connected')
 def handle_connected(data):
     print('connect data user', data)
+    data['user_id'] = data['user_id']
     join_room(data.get('room'))  # присоединяем пользователя к комнате с уникальным идентификатором
     emit('connected', message_db[data.get('room')])
     online_users[request.sid] = {"_id": data.get('user_id'), "room": data.get('room')}
@@ -244,6 +256,7 @@ def handle_disconnect():
     disconnected_user_id = request.sid
     print('disconnected_user_id', disconnected_user_id)
     user_data = online_users.get(request.sid)
+    user_data['user_id'] = str(user_data['user_id'])
     if user_data:
         emit('online', {"online": False, "user_id": user_data['user_id']}, room=user_data['room'])
         online_users[request.sid] = False
@@ -254,6 +267,7 @@ def handle_message(data):
     # add_to_database(data, 'messages')  # сохраняем сообщение в MongoDB
     print('get message', data)
     emit('message', data, room=data['room'])  # отправляем сообщение только тем, кто в этой комнате
+    data['user_id'] = str(data['user_id'])
     get_message = message_db.find_one({'user_id': data.get('user_id'), 'room': data.get('room')})
     get_message['messages'] += data['message']
 
