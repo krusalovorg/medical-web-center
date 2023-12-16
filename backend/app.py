@@ -147,6 +147,7 @@ def show_ref():
         return jsonify(result)
     return []
 
+
 @app.route('/delete_reference', methods=['DELETE'])
 @jwt_required()
 def delete_ref():
@@ -164,6 +165,7 @@ def delete_ref():
             return jsonify({'error': 'Invalid reference_id in request body.'}), 400
     else:
         return jsonify({'error': 'User not found.'}), 404
+
 
 # show doctors
 @app.route('/show_doctor', methods=['POST'])
@@ -247,9 +249,8 @@ def show_mess():
 @app.route('/show_chats', methods=['POST'])
 @jwt_required()
 def show_chat():
-    data = request.form
     result = []
-    messages = reference_db.find({'user_id': data.get('user_id')})
+    messages = reference_db.find({'user_id': get_user()})
     for document in messages:
         result.append(document)
     return jsonify(result)
@@ -265,7 +266,7 @@ def handle_connected(data):
     join_room(data.get('room'))  # присоединяем пользователя к комнате с уникальным идентификатором
 
     message_send = message_db.find_one({"users": {"$all": [data.get('room'), data.get("user_id")]}})
-    print('message send',message_send)
+    print('message send', message_send)
     if message_send:
         message_send['_id'] = str(message_send['_id'])
         emit('connected', message_send)
@@ -273,8 +274,9 @@ def handle_connected(data):
     online_users[request.sid] = {"_id": data.get('user_id'), "room": data.get('room')}
     print(online_users)
 
-    emit('online', {"online": True, "user_id": str(data.get('user_id'))}, room=online_users.get(request.sid).get('room'))
-    print('findeddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',message_send)
+    emit('online', {"online": True, "user_id": str(data.get('user_id'))},
+         room=online_users.get(request.sid).get('room'))
+    print('findeddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd', message_send)
     if not message_send:
         print('try create')
         add_to_database({'users': [data.get('user_id'), data.get('room')], 'messages': []}, 'messages')
@@ -285,7 +287,7 @@ def handle_disconnect():
     disconnected_user_id = request.sid
     print('disconnected_user_id', disconnected_user_id, online_users)
     user_data = online_users.get(request.sid)
-    print('get data disconected',user_data)
+    print('get data disconected', user_data)
     if user_data:
         emit('online', {"online": False, "user_id": str(user_data.get('user_id'))}, room=user_data.get('room'))
         online_users[request.sid] = False
@@ -297,15 +299,38 @@ def handle_message(data):
     print('get message', data)
     emit('message', data, room=data.get('room'))  # отправляем сообщение только тем, кто в этой комнате
     data['user_id'] = str(data.get('user_id'))
-    print(data.get('user_id'),)
+    print(data.get('user_id'), )
     get_message = message_db.find_one({"users": {"$all": [data.get('room'), data.get("user_id")]}})
-    print('get mdgs',get_message)
+    print('get mdgs', get_message)
     get_message['messages'].append(data)
     # message_db.update_one({'user_id': data.get('user_id')}, {'$set': get_message})
     message_db.update_one(
         {"users": {"$all": [data.get('room'), data.get("user_id")]}},
         {'$push': {'messages': data}}
     )
+
+
+@socketio.on('join_video')
+def join(data):
+    room = data['room']
+    join_room(room)
+    online_users[request.sid] = {"_id": data.get('user_id'), "room": data.get('room')}
+    emit('video', {"online": True, "user_id": str(data.get('user_id'))}, room=online_users.get(request.sid).get('room'))
+
+
+@socketio.on('get_data')
+def transfer_data(message):
+    username = message['username']
+    room = message['room']
+    data = message['data']
+    print('DataEvent: {} has sent the data:\n {}\n'.format(username, data))
+    emit('data', data, to=room, skip_sid=request.sid)
+
+
+@socketio.on_error_default
+def default_error_handler(e):
+    print("Error: {}".format(e))
+    socketio.stop()
 
 
 # start program
