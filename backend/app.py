@@ -171,6 +171,12 @@ def update_by_id():
     for key in data.keys():
         document[key] = data[key]
     collection_db.update_one({'_id': user}, {'$set': document})
+    
+# send image
+@app.route('/image/<image_name>', methods=['GET'])
+def send_image(image_name):
+    image_path = os.path.join(app.root_path, 'images', image_name)
+    return send_file(image_path, as_attachment=True)
 
 msgs = []
 

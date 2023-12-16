@@ -10,6 +10,7 @@ const UserContext = createContext<UserData>({
   birthday: '',
   position: '',
   isDoctor: false,
+  avatar: 'user.svg',
   _id: ''
 });
 

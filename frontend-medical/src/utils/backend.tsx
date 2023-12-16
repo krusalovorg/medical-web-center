@@ -48,6 +48,7 @@ export type UserData = {
     birthday?: string;
     position?: string;
     isDoctor?: boolean;
+    avatar: string,
     _id?: any;
 };
 
