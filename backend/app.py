@@ -264,7 +264,7 @@ def handle_connected(data):
     data['user_id'] = str(data.get('user_id'))
     join_room(data.get('room'))  # присоединяем пользователя к комнате с уникальным идентификатором
 
-    message_send = message_db.find_one({"users": [data.get('room'), data.get("user_id")]})
+    message_send = message_db.find_one({"users": {"$all": [data.get('room'), data.get("user_id")]}})
     print('message send',message_send)
     if message_send:
         message_send['_id'] = str(message_send['_id'])
@@ -298,10 +298,14 @@ def handle_message(data):
     emit('message', data, room=data.get('room'))  # отправляем сообщение только тем, кто в этой комнате
     data['user_id'] = str(data.get('user_id'))
     print(data.get('user_id'),)
-    get_message = message_db.find_one({'user_id': data.get('user_id'), 'room': data.get('room')})
+    get_message = message_db.find_one({"users": {"$all": [data.get('room'), data.get("user_id")]}})
     print('get mdgs',get_message)
     get_message['messages'].append(data)
-    message_db.update_one({'user_id': data.get('user_id')}, {'$set': get_message})
+    # message_db.update_one({'user_id': data.get('user_id')}, {'$set': get_message})
+    message_db.update_one(
+        {"users": {"$all": [data.get('room'), data.get("user_id")]}},
+        {'$push': {'messages': data}}
+    )
 
 
 # start program

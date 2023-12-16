@@ -48,14 +48,14 @@ function Chat() {
 
         socket.emit('connected', { room: selectId, user_id: userData._id });
 
-        socket.on('connected', (messages) => {
-            console.log('get data:', messages);
-            setMessages(messages);
+        socket.on('connected', (data) => {
+            console.log('get data:', data);
+            setMessages(data?.messages);
         });
 
-        socket.on('message', (message) => {
-            console.log('get data:', message, [...messages, message]);
-            setMessages([...messages, message]);
+        socket.on('message', (message: any) => {
+            console.log('get data:', message, messages);
+            setMessages((prevMessages: any) => ([...prevMessages, message]));
         });
 
         socket.on('online', (online: any) => {
@@ -167,7 +167,7 @@ function Chat() {
                             <UserMessage
                                 setId={setSelectId}
                                 setData={setSelectedUserChat}
-                                
+
                                 data={{
                                     select: selectId == item?._id,
                                     id: item?._id,
