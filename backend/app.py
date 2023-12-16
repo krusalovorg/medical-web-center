@@ -208,7 +208,16 @@ def update_by_id():
 def send_image(image_name):
     image_path = os.path.join(app.root_path, 'images', image_name)
     return send_file(image_path, as_attachment=True)
-
+    
+@app.route('/show_messages', methods=['POST'])
+@jwt_required()
+def show_mess():
+    data = request.form
+    result = []
+    messages = reference_db.find({'user_id': data.get('user_id'), 'room': data.get('room')})
+    for document in messages:
+        result.append(document)
+    return jsonify({result})
 
 msgs = {}
 
@@ -223,6 +232,8 @@ def handle_connected(data):
     emit('connected', msgs[data['room']])
     online_users[request.sid] = {"_id": data['user_id'], "room": data['room']}
     emit('online', {"online": True, "user_id": data['user_id']}, room=online_users.get(request.sid).get('room'))
+    if not message_db.find_one({'user_id': data.get('user_id')}) and not message_db.find_one({'room': data.get('room')}):
+        add_to_database({'user_id': data.get('user_id'), 'room': data.get('room'), 'messages': []}, 'messages')
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -240,7 +251,8 @@ def handle_message(data):
     print('get message', data)
     msgs[data['room']].append(data)
     emit('message', data, room=data['room'])  # отправляем сообщение только тем, кто в этой комнате
-
+    get_message = message_db.find_one({'user_id': data['user_id']})
+    get_message['messages'] += data['message']
 
 # start program
 if __name__ == '__main__':
