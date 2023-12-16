@@ -328,12 +328,13 @@ def handle_message(data):
     )
 
 
-@socketio.on('join_video')
-def join(data):
-    room = data.get('room')
+@socketio.on('join')
+def join(message):
+    username = message['username']
+    room = message['room']
     join_room(room)
-    emit('video', {"online": True, "user_id": str(data.get('user_id'))}, to=room, skip_sid=request.sid)
-
+    print('RoomEvent: {} has joined the room {}\n'.format(username, room))
+    emit('ready', {username: username}, to=room, skip_sid=request.sid)
 
 @socketio.on('get_data')
 def transfer_data(message):
