@@ -162,7 +162,7 @@ def upload_image():
     if 'image' in request.files:
         img_file = request.files['image']
         img = Image.open(BytesIO(img_file.read()))
-        text = pytesseract.image_to_string(img)
+        text = pytesseract.image_to_string(img, lang='rus')
         return jsonify({'text': text})
     else:
         return jsonify({'text': "No image provided in formdata"})
@@ -267,10 +267,10 @@ def update_by_id():
 @app.route('/image/<image_name>', methods=['GET'])
 def send_image(image_name):
     image_path = os.path.join(app.root_path, 'images', image_name)
-    try:
+    if os.path.exists(image_path):
         return send_file(image_path, as_attachment=True)
-    except:
-        print('not found')
+    else:
+        return "Файл не найден", 404
 
 @app.route('/show_messages', methods=['POST'])
 @jwt_required()
@@ -321,10 +321,9 @@ def show_chat():
 @app.route('/get_all_position', methods=['POST'])
 def all_position():
     pos = []
-    users = collection_db.find({})
-    for user in users:
-        if user['position'] not in pos:
-            pos.append(user['position'])
+    distinct_positions = collection_db.distinct("position")
+    for document in distinct_positions:
+        pos.append(document)
     return jsonify(pos)
 
 online_users = {}
@@ -336,142 +335,6 @@ def extract_text_inside_brackets(text):
         return result.group(1).replace("(","").replace(")","")
     else:
         return ""
-
-@socketio.on('connected')
-def handle_connected(data):
-    print('=========== connected ===========')
-    print('connect data user', data)
-    data['user_id'] = str(data.get('user_id'))
-    join_room(data.get('room'))  # присоединяем пользователя к комнате с уникальным идентификатором
-
-    id_room = data.get('room')
-    user_id = data.get('user_id')
-
-    print("id room", id_room)
-    print('user id', user_id)
-    print('id gpt', id_gpt)
-
-    if id_room == None or user_id == None:
-        return
-
-    room_obj = None
-    if id_room:
-        room_obj = collection_db.find_one({"_id": ObjectId(id_room)})
-
-    user_obj = None
-    if user_id:
-        user_obj = collection_db.find_one({"_id": ObjectId(user_id)})
-    if not room_obj or not user_obj:
-        print("room obj", room_obj)
-        print("user obj", user_obj)
-        return
-    print('id_room, user_id',id_room, user_id,id_room== user_id)
-    if id_room == user_id:
-        message_send = message_db.find_one({"users": [id_room, user_id]})
-    else:
-        message_send = message_db.find_one({"users": {"$all": [id_room, user_id]}})
-    print('message send', message_send)
-    if message_send:
-        message_send['_id'] = str(message_send['_id'])
-        emit('connected', message_send)
-
-    online_users[request.sid] = {"_id": data.get('user_id'), "room": data.get('room')}
-    print(online_users)
-
-    emit('online', {"online": True, "user_id": str(data.get('user_id'))},
-         room=online_users.get(request.sid).get('room'))
-    if not message_send:
-        print('try create')
-        add_to_database({'users': [id_room, user_id], 'messages': []}, 'messages')
-
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    disconnected_user_id = request.sid
-    print('disconnected_user_id', disconnected_user_id, online_users)
-    user_data = online_users.get(request.sid)
-    print('get data disconected', user_data)
-    if user_data:
-        emit('online', {"online": False, "user_id": str(user_data.get('user_id'))}, room=user_data.get('room'))
-        online_users[request.sid] = False
-
-def searchMainTopic(text, top=1):
-    res = extractor.extract_keywords(text)
-    res = res[:top]
-    if len(res) > 0:
-        return res[0]
-    return ""
-
-@socketio.on('message')
-def handle_message(data):
-    # add_to_database(data, 'messages')  # сохраняем сообщение в MongoDB
-    print('get message', data)
-    emit('message', data, room=data.get('room'))  # отправляем сообщение только тем, кто в этой комнате
-    data['user_id'] = str(data.get('user_id'))
-    data['date'] = time.time()
-    data['role'] = "user"
-    to_gpt = data["room"] == id_gpt
-    clear_chat = data.get('clear')
-    if to_gpt:
-        data["content"] = data["text"]
-    if clear_chat and to_gpt:
-        message_db.update_one(
-            {"users": {"$all": [data.get('room'), data.get("user_id")]}},
-            {'$set': {'messages': []}}
-        )
-        print('clear send')
-        emit('connected', [], room=data.get('room'))
-        return
-    print(data.get('user_id'))
-    gpt_obj = None
-    if to_gpt:
-        get_message = message_db.find_one({"users": {"$all": [data.get('room'), data.get("user_id")]}})
-        print('get mdgs', get_message)
-        get_message['messages'].append(data)
-        result = ai.generate('\n'.join(map(lambda message: message['text'], get_message.get("messages"))))
-        # response = g4f.ChatCompletion.create(
-        #     model=g4f.models.default,
-        #     messages=get_message['messages'],
-        #     # proxy="http://149.50.134.203:80",
-        # )
-        gpt_obj = {"role": "assistant", "content": result, "text": result, "date": time.time(), "user_id": id_gpt, "topic": searchMainTopic(result), "google": extract_text_inside_brackets(result)}
-        print(get_message['messages'])
-        print(result)
-    # message_db.update_one({'user_id': data.get('user_id')}, {'$set': get_message})
-    message_db.update_one(
-        {"users": {"$all": [data.get('room'), data.get("user_id")]}},
-        {'$push': {'messages': data}}
-    )
-    if to_gpt:
-        message_db.update_one(
-            {"users": {"$all": [data.get('room'), data.get("user_id")]}},
-            {'$push': {'messages': gpt_obj}}
-        )
-        emit('message', gpt_obj, room=data.get('room'))
-
-
-@socketio.on('join')
-def join(message):
-    username = message['username']
-    room = message['room']
-    join_room(room)
-    print('RoomEvent: {} has joined the room {}\n'.format(username, room))
-    emit('ready', {username: username}, to=room, skip_sid=request.sid)
-
-@socketio.on('get_data')
-def transfer_data(message):
-    username = str(message.get('user_id'))
-    room = message.get('room')
-    data = message.get('data')
-    print('DataEvent: {} has sent the data:\n {}\n'.format(username, data))
-    emit('data', data, to=room, skip_sid=request.sid)
-
-
-@socketio.on_error_default
-def default_error_handler(e):
-    print("Error: {}".format(e))
-    socketio.stop()
-
 
 
 @app.route('/add_to_history', methods=['POST'])
@@ -553,9 +416,142 @@ def initGptUser():
     else:
         id_gpt = str(gpt_bot.get("_id"))
 
+
+@socketio.on('connected')
+def handle_connected(data):
+    print('=========== connected ===========')
+    print('connect data user', data)
+    data['user_id'] = str(data.get('user_id'))
+    join_room(data.get('room'))  # присоединяем пользователя к комнате с уникальным идентификатором
+
+    id_room = data.get('room')
+    user_id = data.get('user_id')
+
+    print("id room", id_room)
+    print('user id', user_id)
+    print('id gpt', id_gpt)
+
+    if id_room == None or user_id == None:
+        print("NONE NONE return")
+        return
+
+    room_obj = None
+    if id_room:
+        room_obj = collection_db.find_one({"_id": ObjectId(id_room)})
+    print("obj room searched", room_obj)
+    user_obj = None
+    if user_id:
+        user_obj = collection_db.find_one({"_id": ObjectId(user_id)})
+    if not room_obj or not user_obj:
+        print("room obj", room_obj)
+        print("user obj", user_obj)
+        print("NOT RETURN")
+        return
+    print('id_room, user_id',id_room, user_id,id_room== user_id)
+    if id_room == user_id:
+        message_send = message_db.find_one({"users": [id_room, user_id]})
+    else:
+        message_send = message_db.find_one({"users": {"$all": [id_room, user_id]}})
+    print('message send', message_send)
+    if message_send:
+        message_send['_id'] = str(message_send['_id'])
+        emit('connected', message_send)
+
+    online_users[request.sid] = {"_id": data.get('user_id'), "room": data.get('room')}
+    print(online_users)
+
+    emit('online', {"online": True, "user_id": str(data.get('user_id'))},
+         room=online_users.get(request.sid).get('room'))
+
+    if not message_send:
+        print('try create')
+        add_to_database({'users': [id_room, user_id], 'messages': []}, 'messages')
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    disconnected_user_id = request.sid
+    print('disconnected_user_id', disconnected_user_id, online_users)
+    user_data = online_users.get(request.sid)
+    print('get data disconected', user_data)
+    if user_data:
+        emit('online', {"online": False, "user_id": str(user_data.get('user_id'))}, room=user_data.get('room'))
+        online_users[request.sid] = False
+
+def searchMainTopic(text, top=1):
+    res = extractor.extract_keywords(text)
+    res = res[:top]
+    if len(res) > 0:
+        return res[0]
+    return ""
+
+@socketio.on('message')
+def handle_message(data):
+    # add_to_database(data, 'messages')  # сохраняем сообщение в MongoDB
+    print("====================== get messages ======================")
+    print('get message', data)
+    data['user_id'] = str(data.get('user_id'))
+    data['date'] = time.time()
+    data['role'] = "user"
+    to_gpt = data["room"] == id_gpt
+    clear_chat = data.get('clear')
+    if to_gpt:
+        data["content"] = data["text"]
+    if clear_chat and to_gpt:
+        message_db.update_one(
+            {"users": {"$all": [data.get('room'), data.get("user_id")]}},
+            {'$set': {'messages': []}}
+        )
+        print('clear send')
+        emit('connected', [], room=data.get('room'))
+        return
+    print(data.get('user_id'))
+    gpt_obj = None
+    if to_gpt:
+        get_message = message_db.find_one({"users": {"$all": [data.get('room'), data.get("user_id")]}})
+        print('get mdgs', get_message)
+        get_message['messages'].append(data)
+        result = ai.generate('\n'.join(map(lambda message: message['text'], get_message.get("messages"))))
+        # response = g4f.ChatCompletion.create(
+        #     model=g4f.models.default,
+        #     messages=get_message['messages'],
+        #     # proxy="http://149.50.134.203:80",
+        # )
+        gpt_obj = {"role": "assistant", "content": result, "text": result, "date": time.time(), "user_id": id_gpt, "topic": searchMainTopic(result), "google": extract_text_inside_brackets(result)}
+        print(get_message['messages'])
+        print(result)
+    # message_db.update_one({'user_id': data.get('user_id')}, {'$set': get_message})
+    message_db.update_one(
+        {"users": {"$all": [data.get('room'), data.get("user_id")]}},
+        {'$push': {'messages': data}}
+    )
+    print("date base add message true")
+    print("send message to socket io room")
+    emit('message', data, room=data.get('room'))  # отправляем сообщение только тем, кто в этой комнате
+    print("sended", data, data.get("room"))
+
+    if to_gpt:
+        message_db.update_one(
+            {"users": {"$all": [data.get('room'), data.get("user_id")]}},
+            {'$push': {'messages': gpt_obj}}
+        )
+        emit('message', data, room=data.get('user_id'))  # отправляем сообщение только тем, кто в этой комнате
+        emit('message', gpt_obj, room=data.get('user_id'))
+        #emit('message', gpt_obj, room=data.get('room_id'))
+        print("SENDED NEURO, object", gpt_obj, data.get('user_id'))
+    else:
+        print("TRY SENDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
+        emit('message', data, room=data.get('user_id'))  # отправляем сообщение только тем, кто в этой комнате
+#
+# @socketio.on_error_default
+# def default_error_handler(e):
+#     print("Error: {}".format(e))
+#     socketio.stop()
+
+
 # start program
 if __name__ == '__main__':
     # socketio.run(app, allow_unsafe_werkzeug=True)
+    #socketio.run(app)
     initGptUser()
     http_server = WSGIServer(('127.0.0.1', 5000), app, handler_class=WebSocketHandler)
     http_server.serve_forever()

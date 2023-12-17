@@ -4,7 +4,7 @@ import socketIo from "socket.io-client";
 import UserContext from "../contexts/UserContext";
 import CameraIcon from "../icons/CameraIcon";
 
-function CallModal({ open, setOpen, selectUserData }: { open: boolean, setOpen: any, selectUserData: UserData }) {
+function CallModal({ open, setOpen, selectUserData, onClose }: { open: boolean, setOpen: any, selectUserData: UserData, onClose?: any }) {
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
     const [openMicro, setOpenMicro] = useState(true);
@@ -172,16 +172,29 @@ function CallModal({ open, setOpen, selectUserData }: { open: boolean, setOpen: 
                         <h1 className={`text-xl text-black font-bold font-[Montserrat]`}>
                             Видеовстреча
                         </h1>
-                        <svg onClick={() => setOpen(false)} className="cursor-pointer" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg onClick={() => {
+                            setOpen(false)
+                            if (onClose) {
+                                onClose()
+                            }
+                        }} className="cursor-pointer" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M20 4L4 20M20 20L4 4" stroke="black" stroke-width="2" stroke-linecap="round" />
                         </svg>
                     </div>
-                    <div className="flex flex-row gap-12 w-full h-full min-h-[500px] mb-auto">
-                        <div className="w-[48%] h-auto bg-black aspect-auto rounded-lg ">
+                    <div className="flex flex-row gap-12 w-full h-full min-h-[645px] mb-auto">
+                        <div className="w-[48%] h-auto bg-black aspect-auto rounded-lg flex justify-center items-center">
                             {/* <video autoPlay muted playsInline ref={localVideoRef} /> */}
+                            {/* <img src={'https://www.zdravitsa.ru/upload/services/terapevtPRO.jpg'} className="w-full h-full rounded-lg"/> */}
+                            <video width="100%" height="auto" autoPlay muted controls>
+                                <source src="/врач.mp4" type="video/mp4" />
+                                Your browser does not support the video tag.
+                            </video>
                         </div>
-                        <div className="w-[48%] h-auto bg-black aspect-auto rounded-lg">
+                        <div className="w-[48%] h-auto bg-black aspect-auto rounded-lg flex justify-center items-center">
                             {/* <video autoPlay muted playsInline ref={remoteVideoRef} /> */}
+                            {openVideo &&
+                                <img src={'https://img.freepik.com/premium-photo/sick-man-with-headache-sitting-under-the-blanket-sick-man-with-seasonal-infections-flu_166258-850.jpg'} className="w-full h-full rounded-lg" />
+                            }
                         </div>
                     </div>
                     <div className="w-full flex flex-row justify-center my-auto mt-4">
@@ -194,8 +207,8 @@ function CallModal({ open, setOpen, selectUserData }: { open: boolean, setOpen: 
                                 </svg>
                             }
                         </div>
-                        <div onClick={() => setOpenVideo(!openVideo)} className={`p-[20px] ml-2 w-fit rounded-full cursor-pointer text-white bg-[#0067E3]`} >
-                            {openVideo ?
+                        <div onClick={() => setOpenMicro(!openMicro)} className={`p-[20px] ml-2 w-fit rounded-full cursor-pointer text-white bg-[#0067E3] ${openMicro && "ring-offset-2 ring-2"} ring-blue-400`} >
+                            {openMicro ?
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M4.39795 11.177C4.66378 13.0035 5.57833 14.6733 6.9743 15.8808C8.37026 17.0883 10.1543 17.7528 12.0001 17.7528M12.0001 17.7528C13.8458 17.7528 15.6298 17.0883 17.0258 15.8808C18.4218 14.6733 19.3363 13.0035 19.6022 11.177M12.0001 17.7528V21.5999M12.0011 2.3999C11.1282 2.3999 10.291 2.74668 9.67376 3.36394C9.05649 3.9812 8.70972 4.81839 8.70972 5.69133V10.0799C8.70972 10.9528 9.05649 11.79 9.67376 12.4073C10.291 13.0246 11.1282 13.3713 12.0011 13.3713C12.8741 13.3713 13.7113 13.0246 14.3285 12.4073C14.9458 11.79 15.2926 10.9528 15.2926 10.0799V5.69133C15.2926 4.81839 14.9458 3.9812 14.3285 3.36394C13.7113 2.74668 12.8741 2.3999 12.0011 2.3999Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                 </svg>

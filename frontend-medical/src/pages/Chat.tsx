@@ -2,13 +2,14 @@ import { useContext, useEffect, useReducer, useRef, useState } from "react";
 import SearchInput from "../components/SearchInput";
 import UserMessage from "../components/UserMessage";
 import Plus from "../icons/Plus";
-import { UserData, getChats, getCookieToken, getDoctors, getImage, getUserData } from "../utils/backend";
+import { UserData, getChats, getCookieToken, getDoctors, getImage, getPositions, getUserData } from "../utils/backend";
 import socketIOClient from 'socket.io-client';
 import Modal from "../components/Modal";
 import { io } from "socket.io-client";
 import UserContext from "../contexts/UserContext";
 import moment from "moment";
 import CallModal from "../components/CallModal";
+import { Dropdown } from 'flowbite-react';
 
 const ENDPOINT = "http://127.0.0.1:5000";
 
@@ -16,6 +17,8 @@ function Chat() {
     const [searchText, setSearchText] = useState('');
     const [doctorsSearch, setDoctorsSearch] = useState<UserData[]>([]);
     const [renderDoctors, setRenderDoctors] = useState();
+    const [doctorsSearchModal, setDoctorsSearchModal] = useState<UserData[]>([]);
+    const [searchTextModal, setSearchTextModal] = useState('');
 
     const ref = useRef<HTMLDivElement>(null);
 
@@ -33,6 +36,8 @@ function Chat() {
     const [text, setText] = useState<string>("");
     const [messages, setMessages] = useState<any>([]);
 
+    const [selectPosition, setSelectPosition] = useState<string>("");
+
     const [onlineUser, setOnlineUser] = useState(false);
 
     const userData = useContext(UserContext);
@@ -40,6 +45,7 @@ function Chat() {
     const [selectId, setSelectId] = useState<any>(null);
 
     const [allDoctors, setAllDoctors] = useState<UserData[]>([]);
+    const [doctroPositions, setDoctroPositions] = useState<string[]>([]);
 
     const [loading, setLoading] = useState(false);
 
@@ -58,12 +64,16 @@ function Chat() {
 
 
     useEffect(() => {
-        const socket = io(ENDPOINT);
+        const socket = io(ENDPOINT, {autoConnect: true});
         console.log('CREATE NEW CONNECTION', selectId, userData?._id)
+
         socket.emit('connected', { room: selectId, user_id: userData._id });
+        console.log("TRY SWEND CONNECTEDTIONDEONSFOENEONF::::::::::::::::")
+        
+        setTimeout(() => socket.emit('connected', { room: selectId, user_id: userData._id }), 500);
 
         socket.on('connected', (data) => {
-            console.log('get data:', data);
+            console.log('get data:::::::', data);
             setMessages(data?.messages);
             setTimeout(() => scrollBottom(), 200);
         });
@@ -87,6 +97,7 @@ function Chat() {
         // });
 
         return () => {
+            console.log("DISCONNECT")
             socket.disconnect();
         };
     }, [selectId]);
@@ -118,6 +129,16 @@ function Chat() {
         }
     }
 
+    async function loadModal() {
+        if (searchTextModal.length > 0) {
+            const res = await getDoctors(searchTextModal);
+            setDoctorsSearchModal(res);
+            // setDoctorsSearch(res);
+        } else {
+            setDoctorsSearchModal([]);
+            // setDoctorsSearch([]);
+        }
+    }
     async function load() {
         if (searchText.length > 0) {
             const res = await getDoctors(searchText);
@@ -140,12 +161,17 @@ function Chat() {
             }
             console.log('sett id', id_room, item)
             setSelectId(id_room)
+            setMessages(item?.messages)
             setSelectedUserChat(item?.companion)
         } else if (!selectId) {
             setSelectId(userData?._id)
             setSelectedUserChat(userData)
         }
     }
+
+    useEffect(() => {
+        loadModal()
+    }, [searchTextModal])
 
     useEffect(() => {
         load()
@@ -161,12 +187,26 @@ function Chat() {
             setAllDoctors(await getDoctors(""));
         } else {
             setAllDoctors([])
+            setSearchTextModal('');
+        }
+        if (doctroPositions.length == 0) {
+            setDoctroPositions(await getPositions());
         }
     }
 
     useEffect(() => {
         loadDoctorsAll()
     }, [open])
+
+    useEffect(() => {
+        if (callOpen) {
+            const socket = io(ENDPOINT);
+            socket.emit('message', { room: selectId, text: '', user_id: userData._id, call: true, call_date: moment().format("DD.MM.YYYY HH:mm") });
+            return () => {
+                socket.disconnect();
+            };    
+        }
+    }, [callOpen])
 
     useEffect(() => {
         loadChats();
@@ -179,12 +219,36 @@ function Chat() {
                 setOpen={setOpen}
                 title={"Выбрать участника"}>
                 <div className="mt-2">
-                    <SearchInput onChange={setSearchText} />
+                    <SearchInput onChange={setSearchTextModal} />
+                    <Dropdown
+                        label={selectPosition || "Выбрать специалиста"}
+                        style={{
+                            width: "100%",
+                            marginTop: 8,
+                            border: 'none',
+                            background: "#F5FAFD",
+                            color: "black",
+                            height: 48
+                        }}
+                        className="w-auto rounded-lg text-center"
+                        dismissOnClick={true}>
+                        {
+                            doctroPositions && doctroPositions.length > 0 && doctroPositions.map((item) => {
+                                if (item == '') {
+                                    return <></>
+                                }
+                                return <Dropdown.Item onClick={() => {
+                                    setSearchTextModal(item)
+                                    setSelectPosition(item);
+                                }} value={item}>{item}</Dropdown.Item>
+                            })
+                        }
+                    </Dropdown>
 
                     <div className="h-[500px] mt-5">
                         {
                             <>
-                                {(doctorsSearch?.length > 0 ? doctorsSearch : allDoctors).map((item, index: number) =>
+                                {(doctorsSearchModal?.length > 0 ? doctorsSearchModal : allDoctors).map((item, index: number) =>
                                     <UserMessage
                                         setId={setSelectCreateChatUser}
                                         setData={setSelectCreateChatUserData}
@@ -211,7 +275,15 @@ function Chat() {
                     }
                 </div>
             </Modal>
-            <CallModal open={callOpen} setOpen={setCallOpen} selectUserData={selectedUserChat} />
+            <CallModal
+                open={callOpen}
+                onClose={() => {
+                    const socket = io(ENDPOINT);
+                    socket.emit('message', { room: selectId, text: '', user_id: userData._id, call: false, call_date: moment().format("DD.MM.YYYY HH:mm") });
+                    socket.disconnect()
+                }}
+                setOpen={setCallOpen}
+                selectUserData={selectedUserChat} />
             <div className="w-full h-full flex flex-row justify-between align-top overflow-y-hidden">
                 <div className="h-full max-w-[550px] bg-white">
                     <div className="bg-white h-[130px] flex justify-center items-center px-4 pt-[30px] relative">
@@ -241,8 +313,10 @@ function Chat() {
                             }
                             return <UserMessage
                                 setId={setSelectId}
-                                setData={setSelectedUserChat}
-
+                                setData={(d: any) => {
+                                    setSelectedUserChat(d);
+                                    setMessages(item?.messages)
+                                }}
                                 data={{
                                     select: selectId == id_room,
                                     id: id_room,
@@ -260,7 +334,10 @@ function Chat() {
                                 {doctorsSearch?.length > 0 && doctorsSearch.map((item: any, index: number) => {
                                     return <UserMessage
                                         setId={setSelectId}
-                                        setData={setSelectedUserChat}
+                                        setData={(d: any) => {
+                                            setSelectedUserChat(d);
+                                            setMessages(item?.messages)
+                                        }}
                                         data={{
                                             select: selectId == item?._id,
                                             id: item?._id,
@@ -285,7 +362,7 @@ function Chat() {
                                 </h1>
                                 <h2 className={`text-black ml-auto font-[Montserrat]`}>{onlineUser ? "в сети" : "не в сети"}</h2>
                             </div>
-                            {selectedUserChat.avatar == "gpt.jpg" ? <></> :
+                            {selectedUserChat?.avatar == "gpt.jpg" ? <></> :
                                 <div
                                     onClick={() => setCallOpen(true)}
                                     className="ml-auto mr-5 cursor-pointer">
@@ -300,7 +377,7 @@ function Chat() {
                         }}>
                             <div className="h-5" />
                             {
-                                selectedUserChat.avatar == "gpt.jpg" ?
+                                selectedUserChat?.avatar == "gpt.jpg" ?
                                     <h1 className="text-black mx-auto font-[Montserrat]">
                                         Внимание! Диагнозы от нейросети могут быть не точными, пожалуйста погуглите прежде чем действовать по советам.
                                     </h1>
@@ -316,7 +393,11 @@ function Chat() {
                                 messages && messages.length > 0 && messages.map((item: any) => {
                                     //console.log(item)
                                     const this_my = item?.user_id == userData?._id;
-                                    console.log(item?.topic)
+                                    //console.log(item?.topic)
+                                    //console.log('itema:', item)
+                                    if (item?.call != undefined) {
+                                        return <h1 className="text-black mx-auto font-[Montserrat]">{item?.call ? "Начата видеовстреча" : "Видеовстреча закончена"} {item?.call_date}</h1>
+                                    }
                                     return <div className={`max-w-[70%] w-fit bg-white shadow-md rounded-2xl p-7 ${this_my ? "ml-auto" : ""}`}>
                                         {item?.text}
 
@@ -374,7 +455,7 @@ function Chat() {
                                     </svg>
                                 </div>
                             }
-                            {selectedUserChat.avatar == "gpt.jpg" &&
+                            {selectedUserChat?.avatar == "gpt.jpg" &&
                                 <div
                                     onClick={() => clearChat()}
                                     className="bg-[#0067E2] ml-2 cursor-pointer rounded-xl w-[200px] h-[40px] text-white font-[Montserrat] font-semibold flex justify-center items-center">

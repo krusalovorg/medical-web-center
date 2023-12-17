@@ -79,7 +79,7 @@ function RefVision() {
                         <div className="px-[3%] pt-2 flex flex-row w-full">
                             <div className="w-[45%]">
                                 <div
-                                    className="bg-white w-full h-[500px]  shadow-md w-fit p-5 rounded-xl mb-5 flex flex-col justify-center items-center cursor-pointer relative"
+                                    className="bg-white w-full h-[500px] overflow-hidden shadow-md w-fit p-5 rounded-xl mb-5 flex flex-col justify-center items-center cursor-pointer relative"
                                     onMouseEnter={() => setIsHovered(true)}
                                     onMouseLeave={() => setIsHovered(false)}
                                 >
@@ -101,10 +101,11 @@ function RefVision() {
                                         }
                                         className={(file && newFileAsImage) ? `w-full h-[160px] rounded-md` : "w-[32px] h-[32px]"}
                                         style={{
-                                            aspectRatio: 1
+                                            aspectRatio: 1,
+                                            height: 'auto'
                                         }}
                                     />
-                                    <h2 className="text-sm text-black font-[Montserrat] mt-2 truncate max-w-[200px]">
+                                    <h2 className="text-sm text-black font-[Montserrat] mt-2 truncate max-w-[200px] z-[100]">
                                         {file ? file?.name : "Нажмите чтобы добавить"}
                                     </h2>
                                 </div>

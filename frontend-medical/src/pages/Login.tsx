@@ -145,14 +145,14 @@ function Login({ reg }: any) {
                         </div>
                         {
                             reg ? <>
-                                <div>
+                                {/* <div>
                                     <label className="block py-1">Повторите пароль</label>
                                     <input
                                         value={passwordRepeat}
                                         onChange={(e) => setPasswordRepeat(e.target.value)}
                                         type="password"
                                         className="border w-full py-2 px-2  outline-none rounded-lg ring-inset ring-gray-300 pl-4 font-[Montserrat]" />
-                                </div>
+                                </div> */}
                                 <div
                                     onClick={() => setImDoctor(!imDoctor)}
                                     className={`w-full h-[60px] cursor-pointer shadow-md flex justify-center items-center rounded-2xl ${imDoctor && "bg-[#0067E3] text-white"}`}>
