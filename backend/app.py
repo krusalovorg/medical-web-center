@@ -1,6 +1,10 @@
 import time
 
 #import g4f
+from io import BytesIO
+
+import pytesseract as pytesseract
+from PIL import Image
 from bson import ObjectId
 from flask import Flask, request, jsonify, send_file
 from pymongo import MongoClient
@@ -32,6 +36,8 @@ app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
 jwt = JWTManager(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 ai = Ai("C:/Users/Egor/Documents/GitHub/Telegram-RP-AI-Bot/models/wizardlm-1.0-uncensored-llama2-13b.Q4_K_M.gguf") #models/llama-2-7b-chat.ggmlv3.q4_1.bin
+
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 search_object_gpt = {"name": "Нейро", "surname": "мед-сестра", "email": "gpt@gpt.gpt"}
 id_gpt = None
@@ -149,6 +155,16 @@ def add_reff():
     add_to_database({'user_id': person_id, 'date': date, 'image': image_filename, 'name': name}, 'references')
     return jsonify({'message': 'добавленно в таблицу '})
 
+@app.route('/image_to_text', methods=['POST'])
+@jwt_required()
+def upload_image():
+    if 'image' in request.files:
+        img_file = request.files['image']
+        img = Image.open(BytesIO(img_file.read()))
+        text = pytesseract.image_to_string(img)
+        return jsonify({'text': text})
+    else:
+        return jsonify({'text': "No image provided in formdata"})
 
 # show references
 @app.route('/show_references', methods=['POST'])

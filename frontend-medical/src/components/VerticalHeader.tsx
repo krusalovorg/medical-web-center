@@ -6,6 +6,7 @@ import Logout from '../icons/Logout';
 import { logout } from '../utils/backend';
 import FileIcon from '../icons/FileIcon';
 import PenWrite from '../icons/PenWrite';
+import CameraIcon from '../icons/CameraIcon';
 
 function VerticalHeader({ children }: any) {
     const navigate = useNavigate();
@@ -25,6 +26,9 @@ function VerticalHeader({ children }: any) {
                 </div>
                 <div onClick={() => navigate("/history")} className={`p-[20px] rounded-full cursor-pointer ${url == '/history' ? 'text-white bg-[#0067E3]' : 'text-black'}`} >
                     <PenWrite />
+                </div>
+                <div onClick={() => navigate("/medical-vision")} className={`p-[20px] rounded-full cursor-pointer ${url == '/medical-vision' ? 'text-white bg-[#0067E3]' : 'text-black'}`} >
+                    <CameraIcon />
                 </div>
                 <div onClick={() => logout()} className={`p-[20px] rounded-full cursor-pointer mt-auto mb-2 text-black`} >
                     <Logout />
