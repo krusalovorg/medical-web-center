@@ -27,7 +27,7 @@ function VerticalHeader({ children }: any) {
                 <div onClick={() => navigate("/history")} className={`p-[20px] rounded-full cursor-pointer ${url == '/history' ? 'text-white bg-[#0067E3]' : 'text-black'}`} >
                     <PenWrite />
                 </div>
-                <div onClick={() => navigate("/medical-vision")} className={`p-[20px] rounded-full cursor-pointer ${url == '/medical-vision' ? 'text-white bg-[#0067E3]' : 'text-black'}`} >
+                <div onClick={() => navigate("/ref-vision")} className={`p-[20px] rounded-full cursor-pointer ${url == '/ref-vision' ? 'text-white bg-[#0067E3]' : 'text-black'}`} >
                     <CameraIcon />
                 </div>
                 <div onClick={() => logout()} className={`p-[20px] rounded-full cursor-pointer mt-auto mb-2 text-black`} >

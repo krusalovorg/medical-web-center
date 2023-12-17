@@ -90,7 +90,7 @@ def register():
     name = data['name']
     surname = data['surname']
     patronymic = data['patronymic']
-    password = generate_password_hash(data['password'], method='sha256')
+    password = generate_password_hash(data['password'], method='pbkdf2:sha256')
     phone_number = data.get('phone_number', '')
     email = data['email']
     avatar = 'user.svg'
@@ -115,6 +115,7 @@ def login():
     password = data['password']
     if data['email']:
         email = data['email']
+        print('password',find_in_database(email=email), password)
         if check_password_hash(find_in_database(email=email), password):
             access_token = create_access_token(identity=email)
             return jsonify(access_token=access_token), 200
