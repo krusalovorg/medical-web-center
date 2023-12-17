@@ -317,6 +317,15 @@ def show_chat():
     return jsonify(result)
 
 
+@app.route('/get_all_position', methods=['POST'])
+def all_position():
+    pos = []
+    users = collection_db.find({})
+    for user in users:
+        if user['position'] not in pos:
+            pos.append(user['position'])
+    return jsonify(pos)
+
 online_users = {}
 
 def extract_text_inside_brackets(text):
